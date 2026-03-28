@@ -121,7 +121,7 @@ async function loadJob(){
     '<div class="ir"><span class="il">เลขที่</span><span class="iv">'+j.ref+'</span></div>'+
     '<div class="ir"><span class="il">Supplier</span><span class="iv">'+j.supplier+'</span></div>'+
     '<div class="ir"><span class="il">ประเภท</span><span class="iv">'+j.type+'</span></div>'+
-    (j.deadline?'<div class="ir"><span class="il">Deadline</span><span class="iv">'+j.deadline+'</span></div>':'');
+    (j.deadline?'<div class="ir"><span class="il">Deadline</span><span class="iv">'+j.deadline+'</span></div>':'')+ (j.note?'<div class="ir"><span class="il">หมายเหตุ</span><span class="iv">'+j.note+'</span></div>':'');
   document.getElementById('job-info').innerHTML=html;
   if(j.status==='received'){
     showReceipt(j.receivedAt, j.photo, j.location);
