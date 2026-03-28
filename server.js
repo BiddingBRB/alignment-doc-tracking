@@ -29,7 +29,7 @@ function getTransporter() {
 }
 
 // Routes
-app.get('/', (req, res) => {
+app.get('*', (req, res) => {
   if (req.query.sup) {
     res.sendFile(path.join(__dirname, 'public', 'supplier.html'));
   } else {
