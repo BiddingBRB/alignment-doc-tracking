@@ -189,6 +189,22 @@ tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(
         <option value="received">Received</option>
         <option value="cancelled">Cancelled</option>
       </select>
+      <select id="dm" onchange="renderDash()">
+        <option value="">ทุกเดือน</option>
+        <option value="1">มกราคม</option>
+        <option value="2">กุมภาพันธ์</option>
+        <option value="3">มีนาคม</option>
+        <option value="4">เมษายน</option>
+        <option value="5">พฤษภาคม</option>
+        <option value="6">มิถุนายน</option>
+        <option value="7">กรกฎาคม</option>
+        <option value="8">สิงหาคม</option>
+        <option value="9">กันยายน</option>
+        <option value="10">ตุลาคม</option>
+        <option value="11">พฤศจิกายน</option>
+        <option value="12">ธันวาคม</option>
+      </select>
+      <select id="dy" onchange="renderDash()"><option value="">ทุกปี</option></select>
       <button class="export-btn" onclick="exportExcel()">⬇ Export Excel</button>
     </div>
     <div class="table-wrap">
@@ -252,8 +268,37 @@ function openQR(job){if(!job)return;curJob=job;var wrap=document.getElementById(
 function closeQR(){document.getElementById('qr-modal').classList.remove('open');}
 function saveQRImage(){if(!curJob)return;var wrap=document.getElementById('qr-wrap'),img=wrap.querySelector('img')||wrap.querySelector('canvas'),off=document.createElement('canvas');off.width=320;off.height=380;var ctx=off.getContext('2d');ctx.fillStyle='#FFFCF2';ctx.fillRect(0,0,320,380);ctx.strokeStyle='rgba(201,168,76,0.6)';ctx.lineWidth=1.5;ctx.strokeRect(8,8,304,364);ctx.fillStyle='#8B6914';ctx.font='bold 11px serif';ctx.textAlign='center';ctx.fillText('ALIGNMENT DOC TRACKING',160,34);ctx.fillText('SINGHA COMPLEX',160,50);var finish=function(){ctx.fillStyle='#3A2E0E';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText(curJob.id,160,240);ctx.fillText(curJob.proj,160,256);ctx.fillText(curJob.supplier+' · '+curJob.type,160,272);if(curJob.deadline)ctx.fillText('Deadline: '+curJob.deadline,160,288);ctx.fillStyle='#9A7C3A';ctx.font='9px sans-serif';ctx.fillText('สแกน QR นี้ตอนนำส่งเอกสาร',160,316);var a=document.createElement('a');a.href=off.toDataURL('image/png');a.download='QR_'+curJob.id+'.png';a.click();var res=document.getElementById('share-res');res.style.display='block';res.style.color='#3A6B40';res.textContent='✓ บันทึกรูปแล้ว — แชร์ผ่าน Line ได้เลย';};if(img){var tmp=new Image();tmp.crossOrigin='anonymous';tmp.onload=function(){ctx.drawImage(tmp,80,64,160,160);finish();};tmp.src=img.src||img.toDataURL();}else finish();}
 async function sendQREmail(){var em=document.getElementById('qr-email-inp').value.trim();if(!em||!em.includes('@')){alert('กรุณากรอก Email ที่ถูกต้อง');return;}var res=document.getElementById('share-res');res.style.display='block';res.style.color='var(--tm)';res.textContent='⏳ กำลังส่ง...';var d=await api({action:'sendQREmail',jobId:curJob.id,email:em,proj:curJob.proj,ref:curJob.ref,type:curJob.type,supplier:curJob.supplier,deadline:curJob.deadline||''});if(d.ok){res.style.color='#3A6B40';res.textContent='⛜ ส่ง QR ไปยัง '+em+' แล้ว';}else{res.style.color='#8B3A1A';res.textContent='ส่งไม่สำเร็จ: '+(d.error||'Unknown');}}
-function updateStats(){document.getElementById('st-total').textContent=jobs.length;document.getElementById('st-recv').textContent=jobs.filter(function(j){return j.status==='received';}).length;document.getElementById('st-pend').textContent=jobs.filter(function(j){return j.status==='pending';}).length;}
-function renderDash(){var q=document.getElementById('dq').value.toLowerCase(),fs=document.getElementById('ds').value,tb=document.getElementById('dash-body'),f=jobs.filter(function(j){return(j.proj+j.supplier+j.ref).toLowerCase().includes(q)&&(!fs||j.status===fs);});if(!f.length){tb.innerHTML='<tr><td colspan="7" class="loading">No data</td></tr>';return;}tb.innerHTML=f.map(function(j){return'<tr><td style="font-family:Cinzel,serif;font-size:9px;color:#8B6914;">'+j.id+'</td><td><div style="font-weight:500;">'+j.proj+'</div><div style="font-size:10px;color:#9A7C3A;">'+j.ref+'</div></td><td>'+j.supplier+'</td><td>'+j.type+'</td><td style="font-size:11px;color:#9A7C3A;">'+(j.deadline||'—')+'</td><td><span class="sp '+(j.status==='received'?'s-recv':j.status==='cancelled'?'s-cancel':'s-pend')+'">'+(j.status==='received'?'Received':j.status==='cancelled'?'Cancelled':'Pending')+'</span></td><td style="font-size:10px;color:#9A7C3A;">'+(j.receivedAt||'—')+'</td></tr>';}).join('');}
+function updateStats(){
+  var fy=document.getElementById('dy');
+  var years=[...new Set(jobs.map(function(j){return j.createdAt?j.createdAt.split('/')[2]&&j.createdAt.split('/')[2].substring(0,4):'';}).filter(Boolean))].sort();
+  var curY=fy?fy.value:'';
+  if(fy){fy.innerHTML='<option value="">ทุกปี</option>'+years.map(function(y){return'<option value="'+y+'"'+(y===curY?' selected':'')+'>'+y+'</option>';}).join('');}
+  document.getElementById('st-total').textContent=jobs.length;
+  document.getElementById('st-recv').textContent=jobs.filter(function(j){return j.status==='received';}).length;
+  document.getElementById('st-pend').textContent=jobs.filter(function(j){return j.status==='pending';}).length;
+}
+function renderDash(){
+  var q=document.getElementById('dq').value.toLowerCase();
+  var fs=document.getElementById('ds').value;
+  var fm=document.getElementById('dm')?document.getElementById('dm').value:'';
+  var fy=document.getElementById('dy')?document.getElementById('dy').value:'';
+  var tb=document.getElementById('dash-body');
+  var f=jobs.filter(function(j){
+    var matchQ=(j.proj+j.supplier+j.ref).toLowerCase().includes(q);
+    var matchS=!fs||j.status===fs;
+    var matchM=true,matchY=true;
+    if(j.deadline){
+      var parts=j.deadline.split('-');
+      if(fm)matchM=parts[1]===fm.padStart(2,'0');
+      if(fy)matchY=parts[0]===fy;
+    } else {
+      if(fm||fy)return false;
+    }
+    return matchQ&&matchS&&matchM&&matchY;
+  });
+  if(!f.length){tb.innerHTML='<tr><td colspan="7" class="loading">No data</td></tr>';return;}
+  tb.innerHTML=f.map(function(j){return'<tr><td style="font-family:Cinzel,serif;font-size:9px;color:#8B6914;">'+j.id+'</td><td><div style="font-weight:500;">'+j.proj+'</div><div style="font-size:10px;color:#9A7C3A;">'+j.ref+'</div></td><td>'+j.supplier+'</td><td>'+j.type+'</td><td style="font-size:11px;color:#9A7C3A;">'+(j.deadline||'—')+'</td><td><span class="sp '+(j.status==='received'?'s-recv':j.status==='cancelled'?'s-cancel':'s-pend')+'">'+(j.status==='received'?'Received':j.status==='cancelled'?'Cancelled':'Pending')+'</span></td><td style="font-size:10px;color:#9A7C3A;">'+(j.receivedAt||'—')+'</td></tr>';}).join('');
+}
 function exportExcel(){if(!jobs.length){alert('ยังไม่มีข้อมูล');return;}var rows=jobs.map(function(j){return{'Job ID':j.id,'โครงการ':j.proj,'เลขที่':j.ref,'Supplier':j.supplier,'ประเภท':j.type,'Deadline':j.deadline,'สร้างโดย':j.createdBy,'สร้างเมื่อ':j.createdAt,'สถานะ':j.status==='received'?'รับแล้ว':'รอรับ','รับเมื่อ':j.receivedAt||''};});var ws=XLSX.utils.json_to_sheet(rows),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Alignment Doc Tracking');XLSX.writeFile(wb,'AlignmentDocTracking_'+new Date().toISOString().slice(0,10)+'.xlsx');}
 async function loadConfig(){var d=await api({action:'getConfig'});if(!d.ok)return;notifyEmails=d.config.notifyEmails||[];renderEmails();}
 function renderEmails(){var el=document.getElementById('email-list');if(!notifyEmails.length){el.innerHTML='<div style="font-size:13px;color:var(--tl);">ยังไม่มี Email</div>';return;}el.innerHTML=notifyEmails.map(function(e,i){return'<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:2px;font-size:13px;"><span style="color:var(--td);">'+e+'</span><button onclick="removeEmail('+i+')" style="background:none;border:none;cursor:pointer;color:var(--tl);font-size:14px;">✕</button></div>';}).join('');}
