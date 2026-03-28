@@ -179,7 +179,7 @@ tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(
     <div class="stats-row">
       <div class="stat-c"><div class="stat-lbl">Total</div><div class="stat-val" id="st-total">0</div></div>
       <div class="stat-c"><div class="stat-lbl">Received</div><div class="stat-val" id="st-recv">0</div></div>
-      <div class="stat-c"><div class="stat-lbl">Pending</div><div class="stat-val" id="st-pend">0</div></div>
+<div class="stat-c"><div class="stat-lbl">Pending</div><div class="stat-val" id="st-pend">0</div></div><div class="stat-c"><div class="stat-lbl">Cancelled</div><div class="stat-val" id="st-cancel">0</div></div>
     </div>
     <div class="filter-row">
       <input type="text" id="dq" placeholder="ค้นหา..." oninput="renderDash()">
@@ -285,7 +285,7 @@ function updateStats(){
   if(fy){fy.innerHTML='<option value="">ทุกปี</option>'+years.map(function(y){return'<option value="'+y+'"'+(y===curY?' selected':'')+'>'+y+'</option>';}).join('');}
   document.getElementById('st-total').textContent=jobs.length;
   document.getElementById('st-recv').textContent=jobs.filter(function(j){return j.status==='received';}).length;
-  document.getElementById('st-pend').textContent=jobs.filter(function(j){return j.status==='pending';}).length;
+document.getElementById('st-pend').textContent=jobs.filter(function(j){return j.status==='pending';}).length;document.getElementById('st-cancel').textContent=jobs.filter(function(j){return j.status==='cancelled';}).length;
 }
 function renderDash(){
   var q=document.getElementById('dq').value.toLowerCase();
