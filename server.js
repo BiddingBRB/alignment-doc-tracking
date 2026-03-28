@@ -256,8 +256,7 @@ app.post('/api', async (req, res) => {
     }
 
     const ok = await updateJob(req.body.jobId, {
-      status: 'received',
-      receivedAt,
+      status: 'pending',
       photo: photoUrl,
       location: req.body.location || null
     });
