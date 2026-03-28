@@ -143,7 +143,19 @@ function prevPhoto(e){
 
 async function submitDoc(){
   if(!photoData){showErr('กรุณาถ่ายรูปซองก่อน');return;}
-  var btn=document.getElementById('sub-btn');btn.disabled=true;btn.textContent='กำลังบันทึก...';
+  var btn=document.getElementById('sub-btn');btn.disabled=true;btn.textContent='กำลังขอตำแหน่ง...';
+  // Wait for GPS if not yet obtained
+  if(!gpsData && navigator.geolocation){
+    try{
+      var pos=await new Promise(function(res,rej){
+        navigator.geolocation.getCurrentPosition(res,rej,{timeout:6000,enableHighAccuracy:true});
+      });
+      gpsData='https://maps.google.com/?q='+pos.coords.latitude+','+pos.coords.longitude;
+      var lb=document.getElementById('loc-btn');
+      if(lb){lb.className='loc-btn ok';document.getElementById('loc-txt').textContent='✓ ได้รับตำแหน่งแล้ว';}
+    }catch(ge){gpsData=null;}
+  }
+  btn.textContent='กำลังบันทึก...';
   try{
     var r=await fetch('/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'supplierSubmit',jobId:jobId,photoBase64:photoData,location:gpsData})});
     var d=await r.json();
