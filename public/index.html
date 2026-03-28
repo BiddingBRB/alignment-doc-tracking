@@ -219,7 +219,7 @@ tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-var jobs=[],currentUser=null,curJob=null,notifyEmails=[];
+var supId=new URLSearchParams(window.location.search).get('sup');if(supId){window.location.href='/supplier.html?sup='+supId;}var jobs=[],currentUser=null,curJob=null,notifyEmails=[];
 async function api(p){var r=await fetch('/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});return r.json();}
 async function doLogin(){var b=document.getElementById('login-btn');b.disabled=true;b.textContent='กำลังเข้าสู่ระบบ...';var u=document.getElementById('l-user').value.trim(),p=document.getElementById('l-pass').value.trim(),d=await api({action:'login',username:u,password:p});if(d.ok){currentUser=d.name;document.getElementById('login-screen').style.display='none';document.getElementById('admin-shell').style.display='block';document.getElementById('hdr-user').textContent='👤 '+d.name;loadJobs();loadConfig();}else{document.getElementById('login-err').style.display='block';b.disabled=false;b.textContent='Sign In';}}
 function doLogout(){currentUser=null;document.getElementById('admin-shell').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('l-user').value='';document.getElementById('l-pass').value='';document.getElementById('login-err').style.display='none';document.getElementById('login-btn').disabled=false;document.getElementById('login-btn').textContent='Sign In';}
