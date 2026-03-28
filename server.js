@@ -306,17 +306,7 @@ app.post('/api', async (req, res) => {
       return res.json({ ok: true });
     } catch(e) {
       return res.json({ ok: false, error: e.message });
-      async function sendSupplierReceived(job) {
-  try {
-    const t = getTransporter();
-    await t.sendMail({
-      from: process.env.GMAIL_USER,
-      to: job.email,
-      subject: `[Alignment Doc Tracking] ✅ ได้รับเอกสารของท่านแล้ว — ${job.proj}`,
-      html: `<div style="font-family:sans-serif;max-width:520px;margin:auto;padding:28px;border:1px solid #e0d0a0;border-radius:6px;background:#fffdf0;"><h2 style="color:#8B6914;font-size:16px;margin-bottom:4px;">✅ ได้รับเอกสารของท่านแล้ว</h2><p style="color:#6B5520;font-size:13px;margin-bottom:16px;">เรียน <b>${job.supplier}</b></p><p style="font-size:14px;color:#3A2E0E;margin-bottom:16px;">กลุ่มงานจัดซื้อกลาง <b>Singha Complex</b> ได้รับซองเอกสารของท่านเรียบร้อยแล้ว</p><table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;"><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">โครงการ</td><td style="padding:6px 10px;">${job.proj}</td></tr><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">เลขที่</td><td style="padding:6px 10px;">${job.ref}</td></tr><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">ประเภทเอกสาร</td><td style="padding:6px 10px;">${job.type}</td></tr><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">เวลารับ</td><td style="padding:6px 10px;">${job.receivedAt}</td></tr></table>${job.photo ? `<p style="font-size:12px;color:#6B5520;">📷 รูปยืนยันการรับเอกสาร: <a href="${job.photo}" style="color:#C9A84C;">ดูรูป</a></p>` : ''}<hr style="border:none;border-top:1px solid #e0d0a0;margin:16px 0;"><p style="font-size:11px;color:#9A7C3A;">— Alignment Doc Tracking · Singha Complex</p></div>`
-    });
-  } catch(e) { console.error('Supplier notify error:', e.message); }
-}
+     
     }
   }
 
@@ -334,6 +324,16 @@ async function sendNotify(job) {
       text: `มีเอกสารส่งมาถึงตึก Singha Complex\n\nโครงการ: ${job.proj}\nเลขที่: ${job.ref}\nSupplier: ${job.supplier}\nประเภท: ${job.type}\nส่งเมื่อ: ${job.receivedAt}\nสร้างโดย: ${job.createdBy}\n${job.photo ? '\nดูรูปซอง: ' + job.photo : ''}${job.location ? '\nตำแหน่ง GPS: ' + job.location : ''}\n\n— ${PROJECT}`
     });
   } catch(e) { console.error('Notify error:', e.message); }
+}async function sendSupplierReceived(job) {
+  try {
+    const t = getTransporter();
+    await t.sendMail({
+      from: process.env.GMAIL_USER,
+      to: job.email,
+      subject: `[Alignment Doc Tracking] ✅ ได้รับเอกสารของท่านแล้ว — ${job.proj}`,
+      html: `<div style="font-family:sans-serif;max-width:520px;margin:auto;padding:28px;border:1px solid #e0d0a0;border-radius:6px;background:#fffdf0;"><h2 style="color:#8B6914;font-size:16px;margin-bottom:4px;">✅ ได้รับเอกสารของท่านแล้ว</h2><p style="color:#6B5520;font-size:13px;margin-bottom:16px;">เรียน <b>${job.supplier}</b></p><p style="font-size:14px;color:#3A2E0E;margin-bottom:16px;">กลุ่มงานจัดซื้อกลาง <b>Singha Complex</b> ได้รับซองเอกสารของท่านเรียบร้อยแล้ว</p><table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;"><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">โครงการ</td><td style="padding:6px 10px;">${job.proj}</td></tr><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">เลขที่</td><td style="padding:6px 10px;">${job.ref}</td></tr><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">ประเภทเอกสาร</td><td style="padding:6px 10px;">${job.type}</td></tr><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">เวลารับ</td><td style="padding:6px 10px;">${job.receivedAt}</td></tr></table>${job.photo ? `<p style="font-size:12px;color:#6B5520;">📷 รูปยืนยัน: <a href="${job.photo}" style="color:#C9A84C;">ดูรูป</a></p>` : ''}<hr style="border:none;border-top:1px solid #e0d0a0;margin:16px 0;"><p style="font-size:11px;color:#9A7C3A;">— Alignment Doc Tracking · Singha Complex</p></div>`
+    });
+  } catch(e) { console.error('Supplier notify error:', e.message); }
 }
 
 const PORT = process.env.PORT || 3000;
