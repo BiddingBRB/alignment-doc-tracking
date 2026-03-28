@@ -108,9 +108,10 @@ async function updateJob(jobId, updates) {
 
   const cur = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: `Sheet1!A${sheetRow}:M${sheetRow}`,
+    range: `Sheet1!A${sheetRow}:N${sheetRow}`,
   });
   const row = (cur.data.values || [[]])[0] || [];
+  while (row.length < 14) row.push('');
 
   if (updates.status)     row[10] = updates.status;
   if (updates.receivedAt) row[11] = updates.receivedAt;
@@ -119,7 +120,7 @@ async function updateJob(jobId, updates) {
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
-    range: `Sheet1!A${sheetRow}:M${sheetRow}`,
+    range: `Sheet1!A${sheetRow}:N${sheetRow}`,
     valueInputOption: 'RAW',
     requestBody: { values: [row] }
   });
