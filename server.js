@@ -2,9 +2,10 @@ const express = require('express');
 const nodemailer = require('nodemailer');
 const path = require('path');
 const { google } = require('googleapis');
+const cloudinary = require('cloudinary').v2;
 
 const app = express();
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '20mb' }));
 app.use(express.static('public'));
 
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
@@ -12,6 +13,28 @@ const ADMIN_PASS = process.env.ADMIN_PASS || 'admin1234';
 const ADMIN_NAME = process.env.ADMIN_NAME || 'Admin';
 const PROJECT = 'Alignment Doc Tracking';
 const SHEET_ID = process.env.GOOGLE_SHEETS_ID;
+
+// Cloudinary config
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Upload base64 image to Cloudinary
+async function uploadPhoto(base64Data, jobId) {
+  try {
+    const result = await cloudinary.uploader.upload(base64Data, {
+      folder: 'alignment-doc-tracking',
+      public_id: jobId,
+      overwrite: true,
+    });
+    return result.secure_url;
+  } catch (e) {
+    console.error('Cloudinary upload error:', e.message);
+    return null;
+  }
+}
 
 // Google Sheets auth
 function getSheets() {
@@ -80,16 +103,14 @@ async function updateJob(jobId, updates) {
   const rows = res.data.values || [];
   const rowIndex = rows.findIndex(r => r[0] === jobId);
   if (rowIndex === -1) return false;
-  const sheetRow = rowIndex + 2; // 1-indexed + header row
+  const sheetRow = rowIndex + 2;
 
-  // Read current row
   const cur = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
     range: `Sheet1!A${sheetRow}:M${sheetRow}`,
   });
   const row = (cur.data.values || [[]])[0] || [];
 
-  // Merge updates
   if (updates.status)     row[10] = updates.status;
   if (updates.receivedAt) row[11] = updates.receivedAt;
   if (updates.photo)      row[12] = updates.photo;
@@ -137,7 +158,6 @@ function getTransporter() {
   });
 }
 
-// Notify emails (from env, can be overridden in memory)
 let notifyEmails = process.env.NOTIFY_EMAILS ? process.env.NOTIFY_EMAILS.split(',') : [];
 
 // Routes
@@ -219,10 +239,16 @@ app.post('/api', async (req, res) => {
 
   if (action === 'supplierSubmit') {
     const receivedAt = new Date().toLocaleString('th-TH');
+    let photoUrl = null;
+
+    if (req.body.photoBase64) {
+      photoUrl = await uploadPhoto(req.body.photoBase64, req.body.jobId);
+    }
+
     const ok = await updateJob(req.body.jobId, {
       status: 'received',
       receivedAt,
-      photo: req.body.photoBase64 || null
+      photo: photoUrl
     });
     if (!ok) return res.json({ ok: false, error: 'Not found' });
     const jobs = await readJobs();
@@ -273,7 +299,7 @@ async function sendNotify(job) {
       from: process.env.GMAIL_USER,
       to: notifyEmails.join(','),
       subject: `[${PROJECT}] เอกสารมาถึงแล้ว — ${job.proj}`,
-      text: `มีเอกสารส่งมาถึงตึก Singha Complex\n\nโครงการ: ${job.proj}\nเลขที่: ${job.ref}\nSupplier: ${job.supplier}\nประเภท: ${job.type}\nรับเมื่อ: ${job.receivedAt}\nสร้างโดย: ${job.createdBy}\n\n— ${PROJECT}`
+      text: `มีเอกสารส่งมาถึงตึก Singha Complex\n\nโครงการ: ${job.proj}\nเลขที่: ${job.ref}\nSupplier: ${job.supplier}\nประเภท: ${job.type}\nรับเมื่อ: ${job.receivedAt}\nสร้างโดย: ${job.createdBy}\n${job.photo ? '\nดูรูปซอง: ' + job.photo : ''}\n\n— ${PROJECT}`
     });
   } catch(e) { console.error('Notify error:', e.message); }
 }
