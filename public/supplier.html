@@ -84,6 +84,7 @@ body{font-family:Sarabun,sans-serif;background:linear-gradient(160deg,#F5EDD0,#E
 
 <script>
 var photoData=null;
+var gpsData=null;
 var jobData=null;
 var jobId=new URLSearchParams(window.location.search).get('sup');
 
@@ -107,7 +108,7 @@ async function loadJob(){
     (j.deadline?'<div class="ir"><span class="il">Deadline</span><span class="iv">'+j.deadline+'</span></div>':'');
   document.getElementById('job-info').innerHTML=html;
   if(j.status==='received'){
-    showReceipt(j.receivedAt, j.photo);
+    showReceipt(j.receivedAt, j.photo, j.location);
   }
 }
 loadJob();
@@ -128,11 +129,16 @@ async function submitDoc(){
   if(!photoData){showErr('กรุณาถ่ายรูปซองก่อน');return;}
   var btn=document.getElementById('sub-btn');btn.disabled=true;btn.textContent='กำลังบันทึก...';
   try{
-    var r=await fetch('/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'supplierSubmit',jobId:jobId,photoBase64:photoData})});
+    // Get GPS location
+    try{
+      var pos=await new Promise(function(res,rej){navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000});});
+      gpsData='https://maps.google.com/?q='+pos.coords.latitude+','+pos.coords.longitude;
+    }catch(ge){gpsData=null;}
+    var r=await fetch('/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'supplierSubmit',jobId:jobId,photoBase64:photoData,location:gpsData})});
     var d=await r.json();
     if(d.ok){
       var now=new Date().toLocaleString('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'medium',timeStyle:'medium'});
-      showReceipt(now, photoData);
+      showReceipt(now, photoData, gpsData);
     } else {
       showErr('เกิดข้อผิดพลาด: '+(d.error||'Unknown'));
       btn.disabled=false;btn.textContent='ยืนยันการส่งเอกสาร';
@@ -143,7 +149,7 @@ async function submitDoc(){
   }
 }
 
-function showReceipt(receivedAt, photoSrc){
+function showReceipt(receivedAt, photoSrc, locationUrl){
   document.getElementById('main-content').style.display='none';
   document.getElementById('receipt-box').style.display='block';
   if(photoSrc){
@@ -159,6 +165,7 @@ function showReceipt(receivedAt, photoSrc){
     ['ประเภท', j.type||'—'],
     ['วันที่รับ', receivedAt||'—'],
     ['สถานที่', 'Singha Complex'],
+    ['GPS', locationUrl ? '<a href=\''+locationUrl+'\' target=\'_blank\' style=\'color:#8B6914;\'>ดูแผนที่</a>' : '—'],
   ];
   if(j.deadline) rows.splice(4,0,['Deadline', j.deadline]);
   document.getElementById('receipt-table').innerHTML=rows.map(function(r){
