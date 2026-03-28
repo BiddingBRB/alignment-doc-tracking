@@ -23,9 +23,22 @@ body{font-family:Sarabun,sans-serif;background:linear-gradient(160deg,#F5EDD0,#E
 .ph{display:flex;flex-direction:column;align-items:center;gap:8px;color:#9A7C3A;font-size:13px;}
 .sub-btn{width:100%;padding:13px;background:linear-gradient(135deg,#C9A84C,#E8C96A);color:#F5EDD0;border:none;border-radius:2px;font-size:12px;letter-spacing:0.1em;cursor:pointer;text-transform:uppercase;}
 .sub-btn:disabled{opacity:0.4;cursor:not-allowed;}
-.ok{text-align:center;padding:28px;display:none;}
 .err{color:#8B3A1A;font-size:12px;margin-top:8px;display:none;}
 .not-found{color:#8B3A1A;font-size:13px;padding:12px 0;}
+
+/* Receipt styles */
+.receipt{display:none;}
+.receipt-header{text-align:center;padding:16px 0 12px;}
+.receipt-check{width:48px;height:48px;background:rgba(80,140,90,0.12);border:1.5px solid rgba(80,140,90,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;}
+.receipt-title{font-family:serif;font-size:16px;color:#3A6B40;margin-bottom:4px;}
+.receipt-sub{font-size:12px;color:#6B5520;}
+.receipt-photo{width:100%;border-radius:4px;margin:14px 0;border:1px solid rgba(201,168,76,0.2);}
+.receipt-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+.receipt-table td{padding:6px 0;vertical-align:top;}
+.receipt-table td:first-child{color:#9A7C3A;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;width:40%;}
+.receipt-table td:last-child{color:#3A2E0E;font-weight:500;text-align:right;}
+.receipt-divider{height:1px;background:rgba(201,168,76,0.15);margin:10px 0;}
+.receipt-footer{text-align:center;font-size:10px;color:#9A7C3A;margin-top:14px;font-family:serif;letter-spacing:0.1em;}
 </style>
 </head>
 <body>
@@ -51,17 +64,33 @@ body{font-family:Sarabun,sans-serif;background:linear-gradient(160deg,#F5EDD0,#E
     <button class="sub-btn" id="sub-btn" onclick="submitDoc()">ยืนยันการส่งเอกสาร</button>
     <div class="err" id="err-msg"></div>
   </div>
-  <div class="ok" id="success-box">
-    <div style="font-size:28px;margin-bottom:10px;">⛜</div>
-    <div style="font-family:serif;font-size:16px;color:#8B6914;margin-bottom:6px;">ส่งเอกสารสำเร็จ</div>
-    <div style="font-size:13px;color:#6B5520;">ระบบบันทึกและแจ้งเตือนเจ้าหน้าที่แล้ว</div>
+
+  <!-- Receipt หลัง submit -->
+  <div class="receipt" id="receipt-box">
+    <div class="receipt-header">
+      <div class="receipt-check">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3A6B40" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="receipt-title">ส่งเอกสารสำเร็จ</div>
+      <div class="receipt-sub">ระบบบันทึกและแจ้งเตือนเจ้าหน้าที่แล้ว</div>
+    </div>
+    <img id="receipt-photo" class="receipt-photo" src="" alt="รูปซอง">
+    <div class="receipt-divider"></div>
+    <table class="receipt-table" id="receipt-table"></table>
+    <div class="receipt-divider"></div>
+    <div class="receipt-footer">SINGHA COMPLEX · ALIGNMENT DOC TRACKING</div>
   </div>
 </div>
+
 <script>
 var photoData=null;
+var jobData=null;
 var jobId=new URLSearchParams(window.location.search).get('sup');
 
-function tick(){document.getElementById('ts-badge').textContent='⏳ '+new Date().toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'medium'});}
+function tick(){
+  var now=new Date();
+  document.getElementById('ts-badge').textContent='⏳ '+now.toLocaleString('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'medium',timeStyle:'medium'});
+}
 tick();setInterval(tick,1000);
 
 async function loadJob(){
@@ -69,7 +98,8 @@ async function loadJob(){
   var r=await fetch('/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'getJobById',jobId:jobId})});
   var d=await r.json();
   if(!d.ok||!d.job){document.getElementById('job-info').innerHTML='<div class="not-found">ไม่พบข้อมูลงาน — กรุณาติดต่อเจ้าหน้าที่</div>';return;}
-  var j=d.job;
+  jobData=d.job;
+  var j=jobData;
   var html='<div class="ir"><span class="il">โครงการ</span><span class="iv">'+j.proj+'</span></div>'+
     '<div class="ir"><span class="il">เลขที่</span><span class="iv">'+j.ref+'</span></div>'+
     '<div class="ir"><span class="il">Supplier</span><span class="iv">'+j.supplier+'</span></div>'+
@@ -77,10 +107,7 @@ async function loadJob(){
     (j.deadline?'<div class="ir"><span class="il">Deadline</span><span class="iv">'+j.deadline+'</span></div>':'');
   document.getElementById('job-info').innerHTML=html;
   if(j.status==='received'){
-    document.getElementById('main-content').style.display='none';
-    document.getElementById('success-box').style.display='block';
-    document.querySelector('#success-box div:nth-child(2)').textContent='ส่งเอกสารแล้ว';
-    document.querySelector('#success-box div:nth-child(3)').textContent='งานนี้ได้รับเอกสารแล้ว';
+    showReceipt(j.receivedAt, j.photo);
   }
 }
 loadJob();
@@ -88,7 +115,12 @@ loadJob();
 function prevPhoto(e){
   var f=e.target.files[0];if(!f)return;
   var r=new FileReader();
-  r.onload=function(ev){photoData=ev.target.result;var img=document.getElementById('photo-prev');img.src=photoData;img.style.display='block';document.getElementById('photo-ph').style.display='none';};
+  r.onload=function(ev){
+    photoData=ev.target.result;
+    var img=document.getElementById('photo-prev');
+    img.src=photoData;img.style.display='block';
+    document.getElementById('photo-ph').style.display='none';
+  };
   r.readAsDataURL(f);
 }
 
@@ -98,9 +130,40 @@ async function submitDoc(){
   try{
     var r=await fetch('/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'supplierSubmit',jobId:jobId,photoBase64:photoData})});
     var d=await r.json();
-    if(d.ok){document.getElementById('main-content').style.display='none';document.getElementById('success-box').style.display='block';}
-    else{showErr('เกิดข้อผิดพลาด: '+(d.error||'Unknown'));btn.disabled=false;btn.textContent='ยืนยันการส่งเอกสาร';}
-  }catch(e){showErr('ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่');btn.disabled=false;btn.textContent='ยืนยันการส่งเอกสาร';}
+    if(d.ok){
+      var now=new Date().toLocaleString('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'medium',timeStyle:'medium'});
+      showReceipt(now, photoData);
+    } else {
+      showErr('เกิดข้อผิดพลาด: '+(d.error||'Unknown'));
+      btn.disabled=false;btn.textContent='ยืนยันการส่งเอกสาร';
+    }
+  } catch(e){
+    showErr('ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่');
+    btn.disabled=false;btn.textContent='ยืนยันการส่งเอกสาร';
+  }
+}
+
+function showReceipt(receivedAt, photoSrc){
+  document.getElementById('main-content').style.display='none';
+  document.getElementById('receipt-box').style.display='block';
+  if(photoSrc){
+    document.getElementById('receipt-photo').src=photoSrc;
+  } else {
+    document.getElementById('receipt-photo').style.display='none';
+  }
+  var j=jobData||{};
+  var rows=[
+    ['โครงการ', j.proj||'—'],
+    ['เลขที่', j.ref||'—'],
+    ['Supplier', j.supplier||'—'],
+    ['ประเภท', j.type||'—'],
+    ['วันที่รับ', receivedAt||'—'],
+    ['สถานที่', 'Singha Complex'],
+  ];
+  if(j.deadline) rows.splice(4,0,['Deadline', j.deadline]);
+  document.getElementById('receipt-table').innerHTML=rows.map(function(r){
+    return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';
+  }).join('');
 }
 
 function showErr(msg){var e=document.getElementById('err-msg');e.textContent=msg;e.style.display='block';}
