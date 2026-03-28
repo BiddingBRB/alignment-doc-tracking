@@ -94,6 +94,15 @@ function tick(){
 }
 tick();setInterval(tick,1000);
 
+// Request GPS on page load
+if(navigator.geolocation){
+  navigator.geolocation.getCurrentPosition(
+    function(pos){gpsData='https://maps.google.com/?q='+pos.coords.latitude+','+pos.coords.longitude;console.log('GPS OK:',gpsData);},
+    function(err){console.log('GPS denied:',err.message);gpsData=null;},
+    {timeout:10000,enableHighAccuracy:true}
+  );
+}
+
 async function loadJob(){
   if(!jobId){document.getElementById('job-info').innerHTML='<div class="not-found">ไม่พบข้อมูลงาน — กรุณาติดต่อเจ้าหน้าที่</div>';return;}
   var r=await fetch('/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'getJobById',jobId:jobId})});
@@ -129,11 +138,6 @@ async function submitDoc(){
   if(!photoData){showErr('กรุณาถ่ายรูปซองก่อน');return;}
   var btn=document.getElementById('sub-btn');btn.disabled=true;btn.textContent='กำลังบันทึก...';
   try{
-    // Get GPS location
-    try{
-      var pos=await new Promise(function(res,rej){navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000});});
-      gpsData='https://maps.google.com/?q='+pos.coords.latitude+','+pos.coords.longitude;
-    }catch(ge){gpsData=null;}
     var r=await fetch('/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'supplierSubmit',jobId:jobId,photoBase64:photoData,location:gpsData})});
     var d=await r.json();
     if(d.ok){
