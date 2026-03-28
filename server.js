@@ -200,7 +200,7 @@ app.post('/api', async (req, res) => {
       email: req.body.email || '',
       note: req.body.note || '',
       createdBy: req.body.createdBy || 'Admin',
-      createdAt: now.toLocaleString('th-TH'),
+      createdAt: now.toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }),
       status: 'pending',
       receivedAt: null,
       photo: null
@@ -228,7 +228,7 @@ app.post('/api', async (req, res) => {
   }
 
   if (action === 'markReceived') {
-    const receivedAt = new Date().toLocaleString('th-TH');
+    const receivedAt = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
     const ok = await updateJob(req.body.jobId, { status: 'received', receivedAt });
     if (!ok) return res.json({ ok: false, error: 'Not found' });
     const jobs = await readJobs();
@@ -238,7 +238,7 @@ app.post('/api', async (req, res) => {
   }
 
   if (action === 'supplierSubmit') {
-    const receivedAt = new Date().toLocaleString('th-TH');
+    const receivedAt = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
     let photoUrl = null;
 
     if (req.body.photoBase64) {
@@ -258,7 +258,7 @@ app.post('/api', async (req, res) => {
   }
 
   if (action === 'cancelJob') {
-    const cancelledAt = new Date().toLocaleString('th-TH');
+    const cancelledAt = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
     const ok = await updateJob(req.body.jobId, {
       status: 'cancelled',
       receivedAt: cancelledAt,
