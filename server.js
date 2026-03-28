@@ -23,7 +23,9 @@ function getTransporter() {
       user: process.env.GMAIL_USER,
       pass: process.env.GMAIL_APP_PASSWORD
     }
-  });
+  });app.get('/sup/:jobId', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'supplier.html'));
+});
 }
 
 // Routes
