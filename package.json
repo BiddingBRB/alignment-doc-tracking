@@ -1,0 +1,13 @@
+{
+  "name": "alignment-doc-tracking",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "nodemailer": "^6.9.7",
+    "multer": "^1.4.5-lts.1",
+    "googleapis": "^128.0.0"
+  }
+}
