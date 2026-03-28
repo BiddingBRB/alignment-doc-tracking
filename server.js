@@ -313,7 +313,7 @@ async function sendNotify(job) {
       from: process.env.GMAIL_USER,
       to: notifyEmails.join(','),
       subject: `[${PROJECT}] เอกสารมาถึงแล้ว — ${job.proj}`,
-      text: `มีเอกสารส่งมาถึงตึก Singha Complex\n\nโครงการ: ${job.proj}\nเลขที่: ${job.ref}\nSupplier: ${job.supplier}\nประเภท: ${job.type}\nส่งเมื่อ: ${job.receivedAt}\nสร้างโดย: ${job.createdBy}\n${job.photo ? '\nดูรูปซอง: ' + job.photo : ''}\n\n— ${PROJECT}`
+      text: `มีเอกสารส่งมาถึงตึก Singha Complex\n\nโครงการ: ${job.proj}\nเลขที่: ${job.ref}\nSupplier: ${job.supplier}\nประเภท: ${job.type}\nส่งเมื่อ: ${job.receivedAt}\nสร้างโดย: ${job.createdBy}\n${job.photo ? '\nดูรูปซอง: ' + job.photo : ''}${job.location ? '\nตำแหน่ง GPS: ' + job.location : ''}\n\n— ${PROJECT}`
     });
   } catch(e) { console.error('Notify error:', e.message); }
 }
