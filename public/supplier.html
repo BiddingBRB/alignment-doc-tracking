@@ -94,12 +94,12 @@ function tick(){
 }
 tick();setInterval(tick,1000);
 
-// Request GPS on page load
+// Request GPS on page load - short timeout, non-blocking
 if(navigator.geolocation){
   navigator.geolocation.getCurrentPosition(
-    function(pos){gpsData='https://maps.google.com/?q='+pos.coords.latitude+','+pos.coords.longitude;console.log('GPS OK:',gpsData);},
-    function(err){console.log('GPS denied:',err.message);gpsData=null;},
-    {timeout:10000,enableHighAccuracy:true}
+    function(pos){gpsData='https://maps.google.com/?q='+pos.coords.latitude+','+pos.coords.longitude;},
+    function(err){gpsData=null;},
+    {timeout:3000,enableHighAccuracy:false,maximumAge:60000}
   );
 }
 
