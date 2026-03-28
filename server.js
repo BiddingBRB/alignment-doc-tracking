@@ -52,7 +52,7 @@ async function readJobs() {
     const sheets = getSheets();
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: 'Sheet1!A2:M',
+      range: 'Sheet1!A2:N',
     });
     const rows = res.data.values || [];
     return rows.map(r => ({
@@ -69,6 +69,7 @@ async function readJobs() {
       status:     r[10] || 'pending',
       receivedAt: r[11] || null,
       photo:      r[12] || null,
+      location:   r[13] || null,
     }));
   } catch (e) {
     console.error('readJobs error:', e.message);
@@ -87,7 +88,7 @@ async function appendJob(job) {
       values: [[
         job.id, job.proj, job.ref, job.supplier, job.type,
         job.deadline, job.email, job.note, job.createdBy,
-        job.createdAt, job.status, job.receivedAt || '', job.photo || ''
+        job.createdAt, job.status, job.receivedAt || '', job.photo || '', job.location || ''
       ]]
     }
   });
@@ -114,6 +115,7 @@ async function updateJob(jobId, updates) {
   if (updates.status)     row[10] = updates.status;
   if (updates.receivedAt) row[11] = updates.receivedAt;
   if (updates.photo)      row[12] = updates.photo;
+  if (updates.location)   row[13] = updates.location;
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
@@ -130,15 +132,15 @@ async function ensureHeader() {
     const sheets = getSheets();
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: 'Sheet1!A1:M1',
+      range: 'Sheet1!A1:N1',
     });
     if (!res.data.values || !res.data.values[0] || res.data.values[0][0] !== 'id') {
       await sheets.spreadsheets.values.update({
         spreadsheetId: SHEET_ID,
-        range: 'Sheet1!A1:M1',
+        range: 'Sheet1!A1:N1',
         valueInputOption: 'RAW',
         requestBody: {
-          values: [['id','proj','ref','supplier','type','deadline','email','note','createdBy','createdAt','status','receivedAt','photo']]
+          values: [['id','proj','ref','supplier','type','deadline','email','note','createdBy','createdAt','status','receivedAt','photo','location']]
         }
       });
     }
@@ -248,7 +250,8 @@ app.post('/api', async (req, res) => {
     const ok = await updateJob(req.body.jobId, {
       status: 'received',
       receivedAt,
-      photo: photoUrl
+      photo: photoUrl,
+      location: req.body.location || null
     });
     if (!ok) return res.json({ ok: false, error: 'Not found' });
     const jobs = await readJobs();
