@@ -1,19 +1,130 @@
 const express = require('express');
 const nodemailer = require('nodemailer');
 const path = require('path');
-const fs = require('fs');
+const { google } = require('googleapis');
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
-// In-memory storage
-let jobs = [];
-let notifyEmails = process.env.NOTIFY_EMAILS ? process.env.NOTIFY_EMAILS.split(',') : [];
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'admin1234';
 const ADMIN_NAME = process.env.ADMIN_NAME || 'Admin';
 const PROJECT = 'Alignment Doc Tracking';
+const SHEET_ID = process.env.GOOGLE_SHEETS_ID;
+
+// Google Sheets auth
+function getSheets() {
+  const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+  const auth = new google.auth.GoogleAuth({
+    credentials: creds,
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  });
+  return google.sheets({ version: 'v4', auth });
+}
+
+// Read all jobs from sheet
+async function readJobs() {
+  try {
+    const sheets = getSheets();
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: 'Sheet1!A2:M',
+    });
+    const rows = res.data.values || [];
+    return rows.map(r => ({
+      id:         r[0]  || '',
+      proj:       r[1]  || '',
+      ref:        r[2]  || '',
+      supplier:   r[3]  || '',
+      type:       r[4]  || '',
+      deadline:   r[5]  || '',
+      email:      r[6]  || '',
+      note:       r[7]  || '',
+      createdBy:  r[8]  || '',
+      createdAt:  r[9]  || '',
+      status:     r[10] || 'pending',
+      receivedAt: r[11] || null,
+      photo:      r[12] || null,
+    }));
+  } catch (e) {
+    console.error('readJobs error:', e.message);
+    return [];
+  }
+}
+
+// Write a new job row
+async function appendJob(job) {
+  const sheets = getSheets();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: 'Sheet1!A1',
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [[
+        job.id, job.proj, job.ref, job.supplier, job.type,
+        job.deadline, job.email, job.note, job.createdBy,
+        job.createdAt, job.status, job.receivedAt || '', job.photo || ''
+      ]]
+    }
+  });
+}
+
+// Update a job row by jobId
+async function updateJob(jobId, updates) {
+  const sheets = getSheets();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: 'Sheet1!A2:A',
+  });
+  const rows = res.data.values || [];
+  const rowIndex = rows.findIndex(r => r[0] === jobId);
+  if (rowIndex === -1) return false;
+  const sheetRow = rowIndex + 2; // 1-indexed + header row
+
+  // Read current row
+  const cur = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: `Sheet1!A${sheetRow}:M${sheetRow}`,
+  });
+  const row = (cur.data.values || [[]])[0] || [];
+
+  // Merge updates
+  if (updates.status)     row[10] = updates.status;
+  if (updates.receivedAt) row[11] = updates.receivedAt;
+  if (updates.photo)      row[12] = updates.photo;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SHEET_ID,
+    range: `Sheet1!A${sheetRow}:M${sheetRow}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [row] }
+  });
+  return true;
+}
+
+// Ensure header row exists
+async function ensureHeader() {
+  try {
+    const sheets = getSheets();
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: 'Sheet1!A1:M1',
+    });
+    if (!res.data.values || !res.data.values[0] || res.data.values[0][0] !== 'id') {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SHEET_ID,
+        range: 'Sheet1!A1:M1',
+        valueInputOption: 'RAW',
+        requestBody: {
+          values: [['id','proj','ref','supplier','type','deadline','email','note','createdBy','createdAt','status','receivedAt','photo']]
+        }
+      });
+    }
+  } catch (e) {
+    console.error('ensureHeader error:', e.message);
+  }
+}
 
 // Email transporter
 function getTransporter() {
@@ -23,12 +134,17 @@ function getTransporter() {
       user: process.env.GMAIL_USER,
       pass: process.env.GMAIL_APP_PASSWORD
     }
-  });app.get('/sup/:jobId', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'supplier.html'));
-});
+  });
 }
 
+// Notify emails (from env, can be overridden in memory)
+let notifyEmails = process.env.NOTIFY_EMAILS ? process.env.NOTIFY_EMAILS.split(',') : [];
+
 // Routes
+app.get('/sup/:jobId', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'supplier.html'));
+});
+
 app.get('*', (req, res) => {
   if (req.query.sup) {
     res.sendFile(path.join(__dirname, 'public', 'supplier.html'));
@@ -49,6 +165,7 @@ app.post('/api', async (req, res) => {
   }
 
   if (action === 'createJob') {
+    const jobs = await readJobs();
     const now = new Date();
     const pad = (n) => String(n).padStart(2, '0');
     const dateStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
@@ -68,7 +185,7 @@ app.post('/api', async (req, res) => {
       receivedAt: null,
       photo: null
     };
-    jobs.push(job);
+    await appendJob(job);
 
     if (job.email) {
       const supplierUrl = `${process.env.APP_URL || 'http://localhost:3000'}/?sup=${encodeURIComponent(jobId)}`;
@@ -86,29 +203,36 @@ app.post('/api', async (req, res) => {
   }
 
   if (action === 'getJobs') {
+    const jobs = await readJobs();
     return res.json({ ok: true, jobs: [...jobs].reverse() });
   }
 
   if (action === 'markReceived') {
+    const receivedAt = new Date().toLocaleString('th-TH');
+    const ok = await updateJob(req.body.jobId, { status: 'received', receivedAt });
+    if (!ok) return res.json({ ok: false, error: 'Not found' });
+    const jobs = await readJobs();
     const j = jobs.find(x => x.id === req.body.jobId);
-    if (!j) return res.json({ ok: false, error: 'Not found' });
-    j.status = 'received';
-    j.receivedAt = new Date().toLocaleString('th-TH');
-    await sendNotify(j);
+    if (j) await sendNotify(j);
     return res.json({ ok: true });
   }
 
   if (action === 'supplierSubmit') {
+    const receivedAt = new Date().toLocaleString('th-TH');
+    const ok = await updateJob(req.body.jobId, {
+      status: 'received',
+      receivedAt,
+      photo: req.body.photoBase64 || null
+    });
+    if (!ok) return res.json({ ok: false, error: 'Not found' });
+    const jobs = await readJobs();
     const j = jobs.find(x => x.id === req.body.jobId);
-    if (!j) return res.json({ ok: false, error: 'Not found' });
-    j.status = 'received';
-    j.receivedAt = new Date().toLocaleString('th-TH');
-    j.photo = req.body.photoBase64 || null;
-    await sendNotify(j);
+    if (j) await sendNotify(j);
     return res.json({ ok: true });
   }
 
   if (action === 'getJobById') {
+    const jobs = await readJobs();
     const j = jobs.find(x => x.id === req.body.jobId);
     return res.json({ ok: true, job: j || null });
   }
@@ -155,4 +279,7 @@ async function sendNotify(job) {
 }
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, async () => {
+  console.log(`Server running on port ${PORT}`);
+  await ensureHeader();
+});
