@@ -24,6 +24,9 @@ body{font-family:Sarabun,sans-serif;background:linear-gradient(160deg,#F5EDD0,#E
 .sub-btn{width:100%;padding:13px;background:linear-gradient(135deg,#C9A84C,#E8C96A);color:#F5EDD0;border:none;border-radius:2px;font-size:12px;letter-spacing:0.1em;cursor:pointer;text-transform:uppercase;}
 .sub-btn:disabled{opacity:0.4;cursor:not-allowed;}
 .err{color:#8B3A1A;font-size:12px;margin-top:8px;display:none;}
+.loc-btn{width:100%;padding:10px;background:transparent;border:1px solid rgba(201,168,76,0.4);border-radius:2px;font-size:11px;color:#6B5520;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:6px;}
+.loc-btn.ok{border-color:rgba(80,140,90,0.3);color:#3A6B40;background:rgba(80,140,90,0.06);}
+.loc-btn.denied{border-color:rgba(180,60,40,0.3);color:#8B3A1A;background:rgba(180,60,40,0.06);}
 .not-found{color:#8B3A1A;font-size:13px;padding:12px 0;}
 
 /* Receipt styles */
@@ -61,6 +64,10 @@ body{font-family:Sarabun,sans-serif;background:linear-gradient(160deg,#F5EDD0,#E
         <span style="font-size:11px;">รูปจะมี Timestamp กำกับอัตโนมัติ</span>
       </div>
     </div>
+    <button class="loc-btn" id="loc-btn" onclick="requestLocation()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      <span id="loc-txt">อนุญาตตำแหน่ง (สำหรับ GPS)</span>
+    </button>
     <button class="sub-btn" id="sub-btn" onclick="submitDoc()">ยืนยันการส่งเอกสาร</button>
     <div class="err" id="err-msg"></div>
   </div>
@@ -177,6 +184,25 @@ function showReceipt(receivedAt, photoSrc, locationUrl){
   }).join('');
 }
 
+function requestLocation(){
+  var btn=document.getElementById('loc-btn');
+  var txt=document.getElementById('loc-txt');
+  if(!navigator.geolocation){txt.textContent='เบราว์เซอร์ไม่รองรับ GPS';return;}
+  txt.textContent='กำลังขอตำแหน่ง...';
+  navigator.geolocation.getCurrentPosition(
+    function(pos){
+      gpsData='https://maps.google.com/?q='+pos.coords.latitude+','+pos.coords.longitude;
+      btn.className='loc-btn ok';
+      txt.textContent='✓ ได้รับตำแหน่งแล้ว';
+    },
+    function(err){
+      gpsData=null;
+      btn.className='loc-btn denied';
+      txt.textContent='ไม่สามารถขอตำแหน่งได้ — กดส่งต่อได้เลย';
+    },
+    {timeout:8000,enableHighAccuracy:true}
+  );
+}
 function showErr(msg){var e=document.getElementById('err-msg');e.textContent=msg;e.style.display='block';}
 </script>
 </body>
