@@ -257,6 +257,16 @@ app.post('/api', async (req, res) => {
     return res.json({ ok: true });
   }
 
+  if (action === 'cancelJob') {
+    const cancelledAt = new Date().toLocaleString('th-TH');
+    const ok = await updateJob(req.body.jobId, {
+      status: 'cancelled',
+      receivedAt: cancelledAt,
+    });
+    if (!ok) return res.json({ ok: false, error: 'Not found' });
+    return res.json({ ok: true });
+  }
+
   if (action === 'getJobById') {
     const jobs = await readJobs();
     const j = jobs.find(x => x.id === req.body.jobId);
