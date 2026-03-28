@@ -133,14 +133,23 @@ function prevPhoto(e){
   var f=e.target.files[0];if(!f)return;
   var r=new FileReader();
   r.onload=function(ev){
-    photoData=ev.target.result;
-    var img=document.getElementById('photo-prev');
-    img.src=photoData;img.style.display='block';
-    document.getElementById('photo-ph').style.display='none';
+    var img=new Image();
+    img.onload=function(){
+      var canvas=document.createElement('canvas');
+      var maxW=800,maxH=800,w=img.width,h=img.height;
+      if(w>maxW){h=h*maxW/w;w=maxW;}
+      if(h>maxH){w=w*maxH/h;h=maxH;}
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      photoData=canvas.toDataURL('image/jpeg',0.6);
+      var imgEl=document.getElementById('photo-prev');
+      imgEl.src=photoData;imgEl.style.display='block';
+      document.getElementById('photo-ph').style.display='none';
+    };
+    img.src=ev.target.result;
   };
   r.readAsDataURL(f);
 }
-
 async function submitDoc(){
   if(!photoData){showErr('กรุณาถ่ายรูปซองก่อน');return;}
   var btn=document.getElementById('sub-btn');btn.disabled=true;btn.textContent='กำลังขอตำแหน่ง...';
