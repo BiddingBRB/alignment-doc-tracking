@@ -268,6 +268,7 @@ tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(
     <button class="nb" onclick="showPage('settings',this)">ตั้งค่า</button>
     <button class="nb" onclick="showPage('members',this)">สมาชิก</button>
     <button class="nb" onclick="showPage('pinset',this)">ตั้ง PIN</button>
+    <button class="nb" onclick="showPage('loginlog',this)">Login Log</button>
   </nav>
 
   <!-- เปิดงาน -->
@@ -295,7 +296,14 @@ tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(
         </div>
         <div class="fr">
           <div class="fld"><label>วันกำหนดส่ง</label><input type="date" id="j-ddl"></div>
-          <div class="fld"><label>Email Supplier</label><input type="email" id="j-email" placeholder="supplier@company.com"></div>
+          <div class="fld">
+            <label>Email Supplier <span style="font-size:9px;color:var(--tl);font-family:sans-serif;text-transform:none;letter-spacing:0;">(กด Enter หรือ , เพื่อเพิ่ม)</span></label>
+            <div id="email-tags-wrap" style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:7px 10px;border:1px solid rgba(201,168,76,0.35);border-radius:2px;background:rgba(255,252,242,0.7);min-height:44px;cursor:text;" onclick="document.getElementById('j-email-inp').focus()">
+              <div id="email-tags" style="display:flex;flex-wrap:wrap;gap:5px;"></div>
+              <input type="email" id="j-email-inp" placeholder="supplier@company.com" style="border:none;outline:none;background:transparent;font-size:14px;font-family:'Sarabun',sans-serif;color:var(--td);min-width:180px;flex:1;" onkeydown="emailTagKeydown(event)" oninput="emailTagInput(event)">
+            </div>
+            <input type="hidden" id="j-email" value="">
+          </div>
         </div>
         <div class="fld"><label>หมายเหตุ</label><textarea id="j-note" placeholder="รายละเอียดเพิ่มเติม"></textarea></div>
         <div id="draft-banner" style="display:none;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.35);border-radius:4px;padding:9px 13px;font-size:12px;color:var(--gold-d);">
@@ -391,9 +399,30 @@ tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(
       <div id="pinset-msg" style="margin-top:10px;font-size:13px;min-height:18px;"></div>
     </div>
   </div>
-</div>
 
-<!-- Modals -->
+  <!-- Login Log -->
+  <div id="page-loginlog" class="page">
+    <div class="sec-ttl">Login Log</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <span style="font-size:12px;color:var(--tl);">ประวัติการเข้าสู่ระบบทั้งหมด</span>
+      <button class="export-btn" onclick="exportLoginLog()">⬇ Export Excel</button>
+    </div>
+    <div class="table-wrap">
+      <table style="min-width:600px;">
+        <thead>
+          <tr>
+            <th>วันเวลา</th>
+            <th>Email / User</th>
+            <th>สถานะ</th>
+            <th>รายละเอียด</th>
+            <th>IP Address</th>
+          </tr>
+        </thead>
+        <tbody id="loginlog-body"><tr><td colspan="5" class="loading">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 <div class="overlay" id="qr-modal">
   <div class="modal">
     <div class="modal-ttl">⛜ QR Code &mdash; ส่งให้ Supplier</div>
@@ -592,6 +621,33 @@ function doLogout(){
 // ============================================================
 // APP
 // ============================================================
+// ============================================================
+// MULTI-EMAIL TAG INPUT
+// ============================================================
+var emailTags=[];
+
+function renderEmailTags(){
+  var wrap=document.getElementById('email-tags');if(!wrap)return;
+  wrap.innerHTML=emailTags.map(function(e,i){
+    return'<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);border-radius:3px;padding:2px 7px;font-size:12px;color:var(--td);">'+e+'<button onclick="removeEmailTag('+i+')" style="background:none;border:none;cursor:pointer;color:var(--tl);font-size:12px;padding:0 0 0 2px;">✕</button></span>';
+  }).join('');
+  document.getElementById('j-email').value=emailTags.join(',');
+}
+function addEmailTag(val){
+  val=val.trim().replace(/,/g,'');if(!val)return;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)){showToast('⚠ Email ไม่ถูกต้อง: '+val);return;}
+  if(emailTags.includes(val)){showToast('⚠ มี Email นี้แล้ว');return;}
+  emailTags.push(val);renderEmailTags();document.getElementById('j-email-inp').value='';
+}
+function removeEmailTag(i){emailTags.splice(i,1);renderEmailTags();}
+function emailTagKeydown(e){
+  if(e.key==='Enter'||e.key===','||e.key===';'){e.preventDefault();addEmailTag(e.target.value);}
+  else if(e.key==='Backspace'&&!e.target.value&&emailTags.length){emailTags.pop();renderEmailTags();}
+}
+function emailTagInput(e){if(e.target.value.endsWith(','))addEmailTag(e.target.value.slice(0,-1));}
+function clearEmailTags(){emailTags=[];renderEmailTags();var inp=document.getElementById('j-email-inp');if(inp)inp.value='';}
+
+// ============================================================
 // Draft dirty tracking
 var formDirty = false;
 function markDirty(){formDirty=true;}
@@ -622,6 +678,7 @@ function showPage(p,btn){
   if(p==='settings')loadConfig();
   if(p==='members')loadMembers();
   if(p==='jobs'){checkDraftBanner();}
+  if(p==='loginlog')loadLoginLog();
 }
 
 // Draft: บันทึกลง localStorage
@@ -632,7 +689,7 @@ function saveDraft(){
     sup:document.getElementById('j-sup').value,
     type:document.getElementById('j-type').value,
     ddl:document.getElementById('j-ddl').value,
-    email:document.getElementById('j-email').value,
+    emails:emailTags.slice(), // เก็บ array ของ emails
     note:document.getElementById('j-note').value,
     savedAt:new Date().toLocaleString('th-TH',{timeZone:'Asia/Bangkok'})
   };
@@ -650,8 +707,10 @@ function loadDraft(){
   document.getElementById('j-sup').value=d.sup||'';
   document.getElementById('j-type').value=d.type||'';
   document.getElementById('j-ddl').value=d.ddl||'';
-  document.getElementById('j-email').value=d.email||'';
   document.getElementById('j-note').value=d.note||'';
+  // โหลด emails กลับมา
+  emailTags=d.emails||( d.email ? d.email.split(',').map(function(e){return e.trim();}).filter(Boolean) : [] );
+  renderEmailTags();
   showToast('📋 โหลด Draft แล้ว (บันทึกเมื่อ '+d.savedAt+')');
 }
 
@@ -680,6 +739,7 @@ async function createJob(){
   if(d.ok){
     ['j-proj','j-ref','j-sup','j-email','j-note'].forEach(function(i){document.getElementById(i).value='';});
     document.getElementById('j-type').value='';document.getElementById('j-ddl').value='';
+    clearEmailTags(); // ล้าง email tags
     localStorage.removeItem('jobDraft'); // ล้าง Draft หลังสร้างสำเร็จ
     checkDraftBanner();
     await loadJobs();var nj=jobs.find(function(j){return j.id===d.jobId;});if(nj)openQR(nj);
@@ -779,6 +839,37 @@ async function savePinSet(){
   var d=await api({action:'setPin',email,currentPin,newPin});
   if(d.ok){msg.style.color='#3A6B40';msg.textContent='✓ บันทึก PIN เรียบร้อยแล้ว';document.getElementById('pinset-current').value='';document.getElementById('pinset-new').value='';document.getElementById('pinset-confirm').value='';}
   else{msg.style.color='#8B3A1A';msg.textContent=d.error||'เกิดข้อผิดพลาด';}
+}
+
+// Login Log
+async function loadLoginLog(){
+  var tb=document.getElementById('loginlog-body');
+  tb.innerHTML='<tr><td colspan="5" class="loading">กำลังโหลด...</td></tr>';
+  var d=await api({action:'getLoginLog'});
+  if(!d.ok||!d.logs.length){tb.innerHTML='<tr><td colspan="5" class="loading">ยังไม่มีข้อมูล</td></tr>';return;}
+  tb.innerHTML=d.logs.map(function(l){
+    var statusColor=l.status==='success'?'s-recv':l.status==='locked'?'s-cancel':'s-pend';
+    var statusTh=l.status==='success'?'✓ สำเร็จ':l.status==='locked'?'🔒 ล็อก':'✗ ล้มเหลว';
+    return'<tr>'
+      +'<td style="font-size:11px;white-space:nowrap;">'+l.timestamp+'</td>'
+      +'<td style="font-size:12px;color:var(--td);">'+l.email+'</td>'
+      +'<td><span class="sp '+statusColor+'">'+statusTh+'</span></td>'
+      +'<td style="font-size:11px;color:var(--tl);">'+l.detail+'</td>'
+      +'<td style="font-size:11px;color:var(--tl);">'+l.ip+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function exportLoginLog(){
+  api({action:'getLoginLog'}).then(function(d){
+    if(!d.ok||!d.logs.length){alert('ยังไม่มีข้อมูล');return;}
+    var rows=d.logs.map(function(l){return{'วันเวลา':l.timestamp,'Email / User':l.email,'สถานะ':l.status==='success'?'สำเร็จ':l.status==='locked'?'ล็อก':'ล้มเหลว','รายละเอียด':l.detail,'IP Address':l.ip};});
+    var ws=XLSX.utils.json_to_sheet(rows,{header:['วันเวลา','Email / User','สถานะ','รายละเอียด','IP Address']});
+    ws['!cols']=[{wch:22},{wch:30},{wch:12},{wch:35},{wch:18}];
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'LoginLog');
+    XLSX.writeFile(wb,'LoginLog_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  });
 }
 
 function showToast(msg){var t=document.getElementById('toast');t.innerHTML=msg;t.style.display='block';setTimeout(function(){t.style.display='none';},3000);}
