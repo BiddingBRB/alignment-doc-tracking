@@ -9,17 +9,47 @@
 :root{--gold:#C9A84C;--gold-l:#E8C96A;--gold-d:#8B6914;--cream:#F0EBD8;--cream-l:#F5EDD0;--c1:#EDE5CC;--td:#3A2E0E;--tm:#6B5520;--tl:#9A7C3A;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Sarabun',sans-serif;background:#F0EBD8;min-height:100vh;}
+
+/* ===== LOGIN SCREENS ===== */
 .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#F5EDD0,#EDE5CC);}
-.login-box{background:rgba(255,252,242,0.92);border:1px solid rgba(201,168,76,0.4);border-radius:6px;padding:40px 36px;width:360px;text-align:center;}
+.login-box{background:rgba(255,252,242,0.92);border:1px solid rgba(201,168,76,0.4);border-radius:6px;padding:40px 36px;width:380px;text-align:center;}
 .login-logo{font-size:32px;margin-bottom:8px;}
 .login-title{font-family:'Cinzel',serif;font-size:13px;letter-spacing:0.18em;color:var(--gold-d);text-transform:uppercase;margin-bottom:4px;}
 .login-sub{font-size:12px;color:var(--tl);margin-bottom:26px;}
+.step-indicator{display:flex;justify-content:center;gap:8px;margin-bottom:22px;}
+.step-dot{width:8px;height:8px;border-radius:50%;background:rgba(201,168,76,0.25);}
+.step-dot.active{background:var(--gold);}
+.step-dot.done{background:rgba(80,140,90,0.5);}
 .lf{text-align:left;margin-bottom:13px;}
 .lf label{font-family:'Cinzel',serif;font-size:10px;letter-spacing:0.12em;color:var(--gold-d);text-transform:uppercase;display:block;margin-bottom:5px;}
 .lf input{width:100%;padding:10px 13px;border:1px solid rgba(201,168,76,0.35);border-radius:2px;font-size:14px;background:rgba(245,237,208,0.5);color:var(--td);font-family:'Sarabun',sans-serif;outline:none;}
 .lf input:focus{border-color:var(--gold);}
 .login-btn{width:100%;padding:12px;background:linear-gradient(135deg,#C9A84C,#E8C96A,#C9A84C);background-size:200%;color:#F5EDD0;border:none;border-radius:2px;font-family:'Cinzel',serif;font-size:11px;letter-spacing:0.2em;cursor:pointer;text-transform:uppercase;}
-.login-err{color:#8B3A1A;font-size:12px;margin-top:10px;display:none;}
+.login-btn:disabled{opacity:0.45;cursor:not-allowed;}
+.back-btn{width:100%;padding:9px;border:1px solid rgba(201,168,76,0.3);background:transparent;border-radius:2px;font-family:'Cinzel',serif;font-size:9px;color:var(--tm);cursor:pointer;text-transform:uppercase;margin-top:8px;}
+.login-err{color:#8B3A1A;font-size:12px;margin-top:10px;min-height:18px;}
+
+/* Member select cards */
+.member-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;text-align:left;}
+.member-card{padding:11px 14px;border:1px solid rgba(201,168,76,0.3);border-radius:4px;cursor:pointer;background:rgba(245,237,208,0.4);transition:all 0.15s;}
+.member-card:hover{background:rgba(201,168,76,0.12);border-color:var(--gold);}
+.member-card.selected{background:rgba(201,168,76,0.15);border-color:var(--gold);border-width:1.5px;}
+.member-email{font-size:13px;color:var(--td);font-weight:500;}
+.member-no-pin{font-size:10px;color:#8B3A1A;margin-top:2px;}
+
+/* PIN Input */
+.pin-wrap{display:flex;justify-content:center;gap:10px;margin:18px 0;}
+.pin-dot{width:44px;height:44px;border:1.5px solid rgba(201,168,76,0.4);border-radius:4px;background:rgba(245,237,208,0.5);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--gold-d);transition:all 0.15s;}
+.pin-dot.filled{border-color:var(--gold);background:rgba(201,168,76,0.1);}
+.pin-dot.active{border-color:var(--gold-d);box-shadow:0 0 0 2px rgba(201,168,76,0.2);}
+.pin-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.pin-key{padding:14px;border:1px solid rgba(201,168,76,0.25);border-radius:4px;background:rgba(255,252,242,0.7);font-family:'Cinzel',serif;font-size:16px;color:var(--td);cursor:pointer;text-align:center;user-select:none;}
+.pin-key:hover{background:rgba(201,168,76,0.1);border-color:var(--gold);}
+.pin-key:active{background:rgba(201,168,76,0.2);}
+.pin-key.del{font-size:13px;color:var(--tl);}
+.lock-info{background:rgba(180,60,40,0.06);border:1px solid rgba(180,60,40,0.2);border-radius:4px;padding:12px;font-size:13px;color:#8B3A1A;margin-bottom:14px;}
+
+/* ===== APP SHELL ===== */
 .shell{display:none;}
 .app-hdr{background:var(--cream-l);padding:11px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid rgba(201,168,76,0.5);position:sticky;top:0;z-index:10;}
 .hdr-l{display:flex;align-items:center;gap:10px;}
@@ -27,10 +57,10 @@ body{font-family:'Sarabun',sans-serif;background:#F0EBD8;min-height:100vh;}
 .hdr-title{font-family:'Cinzel',serif;font-size:12px;letter-spacing:0.14em;color:var(--gold-d);}
 .hdr-sub{font-size:10px;color:var(--tl);}
 .hdr-r{display:flex;align-items:center;gap:10px;}
-.hdr-user{font-size:11px;color:var(--tm);font-family:'Cinzel',serif;}
+.hdr-user{font-size:11px;color:var(--tm);font-family:'Cinzel',serif;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .logout-btn{padding:5px 11px;border:1px solid rgba(201,168,76,0.35);background:transparent;border-radius:2px;font-family:'Cinzel',serif;font-size:9px;color:var(--tm);cursor:pointer;text-transform:uppercase;}
 .nav{background:var(--c1);border-bottom:1px solid rgba(201,168,76,0.3);display:flex;}
-.nb{padding:11px 20px;font-family:'Cinzel',serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;border:none;background:transparent;cursor:pointer;color:var(--tl);border-bottom:2px solid transparent;}
+.nb{padding:11px 18px;font-family:'Cinzel',serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;border:none;background:transparent;cursor:pointer;color:var(--tl);border-bottom:2px solid transparent;}
 .nb.active{color:var(--gold-d);border-bottom:2px solid var(--gold);background:rgba(201,168,76,0.08);}
 .page{display:none;padding:22px 22px 40px;}
 .page.active{display:block;}
@@ -43,7 +73,7 @@ body{font-family:'Sarabun',sans-serif;background:#F0EBD8;min-height:100vh;}
 .fld{display:flex;flex-direction:column;gap:5px;}
 .fld label{font-family:'Cinzel',serif;font-size:10px;color:var(--gold-d);text-transform:uppercase;letter-spacing:0.1em;}
 .fld input,.fld select,.fld textarea{padding:10px 13px;border:1px solid rgba(201,168,76,0.35);border-radius:2px;font-size:15px;background:rgba(255,252,242,0.7);color:var(--td);font-family:'Sarabun',sans-serif;outline:none;width:100%;}
-.fld textarea{resize:none;height:70px;font-size:15px;}
+.fld textarea{resize:none;height:70px;}
 .fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--gold);}
 .req{color:var(--gold);}
 .gold-btn{padding:12px 18px;background:linear-gradient(135deg,#C9A84C,#E8C96A,#C9A84C);background-size:200%;color:#F5EDD0;border:none;border-radius:2px;font-family:'Cinzel',serif;font-size:10px;letter-spacing:0.16em;cursor:pointer;text-transform:uppercase;width:100%;}
@@ -51,6 +81,7 @@ body{font-family:'Sarabun',sans-serif;background:#F0EBD8;min-height:100vh;}
 .ghost-btn{padding:9px 15px;border:1px solid rgba(201,168,76,0.4);background:transparent;border-radius:2px;font-family:'Cinzel',serif;font-size:10px;letter-spacing:0.12em;color:var(--gold-d);cursor:pointer;text-transform:uppercase;}
 .sm-btn{padding:5px 11px;border:1px solid rgba(201,168,76,0.35);background:rgba(201,168,76,0.07);border-radius:2px;font-family:'Cinzel',serif;font-size:9px;color:var(--gold-d);cursor:pointer;text-transform:uppercase;white-space:nowrap;}
 .sm-btn.green{background:rgba(80,140,90,0.08);border-color:rgba(80,140,90,0.25);color:#3A6B40;}
+.sm-btn.red{background:rgba(180,60,40,0.06);border-color:rgba(180,60,40,0.25);color:#8B3A1A;}
 .job-item{background:rgba(255,252,242,0.85);border:1px solid rgba(201,168,76,0.2);border-radius:4px;padding:13px 15px;margin-bottom:9px;}
 .job-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
 .job-id{font-family:'Cinzel',serif;font-size:9px;color:var(--tl);}
@@ -74,7 +105,6 @@ body{font-family:'Sarabun',sans-serif;background:#F0EBD8;min-height:100vh;}
 .qr-dr .row .v{color:var(--td);font-weight:500;}
 .share-sec{background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:4px;padding:13px;margin-bottom:13px;}
 .share-ttl{font-family:'Cinzel',serif;font-size:9px;color:var(--gold-d);text-transform:uppercase;margin-bottom:9px;}
-.share-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
 .email-row{display:flex;gap:8px;}
 .email-row input{flex:1;padding:7px 10px;border:1px solid rgba(201,168,76,0.35);border-radius:2px;font-size:13px;background:rgba(255,252,242,0.8);color:var(--td);outline:none;font-family:'Sarabun',sans-serif;}
 .share-res{font-size:12px;margin-top:8px;display:none;}
@@ -96,6 +126,11 @@ tbody tr:hover{background:rgba(201,168,76,0.04);}
 tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(255,252,242,0.5);}
 .loading{text-align:center;padding:28px;color:var(--tl);font-family:'Cinzel',serif;font-size:11px;}
 .toast{position:fixed;bottom:24px;right:24px;background:rgba(255,252,242,0.97);border:1px solid rgba(201,168,76,0.4);border-radius:4px;padding:12px 18px;font-size:13px;color:var(--tm);font-family:'Cinzel',serif;z-index:200;display:none;}
+.member-row{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:rgba(255,252,242,0.7);border:1px solid rgba(201,168,76,0.2);border-radius:4px;margin-bottom:7px;}
+.member-info{font-size:13px;color:var(--td);}
+.member-info .pin-status{font-size:10px;margin-top:2px;}
+.pin-status.ok{color:#3A6B40;}
+.pin-status.no{color:#8B3A1A;}
 @media(max-width:600px){
   .page{padding:16px 14px 40px;}
   .fr{grid-template-columns:1fr;}
@@ -109,21 +144,91 @@ tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(
   .hdr-title{font-size:11px;}
   .hdr-sub{display:none;}
   .nb{padding:10px 12px;font-size:9px;}
+  .pin-key{padding:16px;}
 }
 </style>
 </head>
 <body>
-<div class="login-wrap" id="login-screen">
+
+<!-- ===== STEP 1: Username + Password ===== -->
+<div class="login-wrap" id="screen-login">
   <div class="login-box">
     <div class="login-logo">⛜</div>
     <div class="login-title">Alignment Doc Tracking</div>
     <div class="login-sub">Singha Complex &middot; Admin Portal</div>
+    <div class="step-indicator">
+      <div class="step-dot active" id="sd1"></div>
+      <div class="step-dot" id="sd2"></div>
+      <div class="step-dot" id="sd3"></div>
+    </div>
+    <div style="font-family:'Cinzel',serif;font-size:9px;color:var(--tl);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:16px;">Step 1 — เข้าสู่ระบบ</div>
     <div class="lf"><label>Username</label><input type="text" id="l-user" placeholder="admin" onkeydown="if(event.key==='Enter')doLogin()"></div>
-    <div class="lf"><label>Password</label><input type="password" id="l-pass" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;" onkeydown="if(event.key==='Enter')doLogin()"></div>
-    <button class="login-btn" id="login-btn" onclick="doLogin()">Sign In</button>
-    <div class="login-err" id="login-err">Username หรือ Password ไม่ถูกต้อง</div>
+    <div class="lf"><label>Password</label><input type="password" id="l-pass" placeholder="••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">ถัดไป →</button>
+    <div class="login-err" id="login-err"></div>
   </div>
 </div>
+
+<!-- ===== STEP 2: Select Member ===== -->
+<div class="login-wrap" id="screen-member" style="display:none;">
+  <div class="login-box">
+    <div class="login-logo">⛜</div>
+    <div class="login-title">เลือกผู้ใช้งาน</div>
+    <div class="login-sub">กรุณาเลือก Email ของคุณ</div>
+    <div class="step-indicator">
+      <div class="step-dot done"></div>
+      <div class="step-dot active"></div>
+      <div class="step-dot"></div>
+    </div>
+    <div style="font-family:'Cinzel',serif;font-size:9px;color:var(--tl);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:16px;">Step 2 — ระบุตัวตน</div>
+    <div class="member-list" id="member-list"></div>
+    <button class="login-btn" id="member-next-btn" onclick="goToPin()" disabled>ถัดไป →</button>
+    <div class="login-err" id="member-err"></div>
+    <button class="back-btn" onclick="goToStep1()">← ย้อนกลับ</button>
+  </div>
+</div>
+
+<!-- ===== STEP 3: PIN Input ===== -->
+<div class="login-wrap" id="screen-pin" style="display:none;">
+  <div class="login-box">
+    <div class="login-logo">🔐</div>
+    <div class="login-title">กรอก PIN</div>
+    <div class="login-sub" id="pin-sub"></div>
+    <div class="step-indicator">
+      <div class="step-dot done"></div>
+      <div class="step-dot done"></div>
+      <div class="step-dot active"></div>
+    </div>
+    <div style="font-family:'Cinzel',serif;font-size:9px;color:var(--tl);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:12px;">Step 3 — ยืนยันตัวตน</div>
+    <div class="lock-info" id="lock-info" style="display:none;"></div>
+    <div class="pin-wrap" id="pin-display">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+      <div class="pin-dot" id="pd4"></div>
+      <div class="pin-dot" id="pd5"></div>
+    </div>
+    <div class="pin-numpad">
+      <button class="pin-key" onclick="pinPress('1')">1</button>
+      <button class="pin-key" onclick="pinPress('2')">2</button>
+      <button class="pin-key" onclick="pinPress('3')">3</button>
+      <button class="pin-key" onclick="pinPress('4')">4</button>
+      <button class="pin-key" onclick="pinPress('5')">5</button>
+      <button class="pin-key" onclick="pinPress('6')">6</button>
+      <button class="pin-key" onclick="pinPress('7')">7</button>
+      <button class="pin-key" onclick="pinPress('8')">8</button>
+      <button class="pin-key" onclick="pinPress('9')">9</button>
+      <button class="pin-key del" onclick="pinClear()">ล้าง</button>
+      <button class="pin-key" onclick="pinPress('0')">0</button>
+      <button class="pin-key del" onclick="pinBackspace()">⌫</button>
+    </div>
+    <div class="login-err" id="pin-err"></div>
+    <button class="back-btn" onclick="goToStep2()">← เปลี่ยนผู้ใช้</button>
+  </div>
+</div>
+
+<!-- ===== APP SHELL ===== -->
 <div class="shell" id="admin-shell">
   <div class="app-hdr">
     <div class="hdr-l">
@@ -139,7 +244,11 @@ tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(
     <button class="nb active" onclick="showPage('jobs',this)">เปิดงาน</button>
     <button class="nb" onclick="showPage('dashboard',this)">Dashboard</button>
     <button class="nb" onclick="showPage('settings',this)">ตั้งค่า</button>
+    <button class="nb" onclick="showPage('members',this)">สมาชิก</button>
+    <button class="nb" onclick="showPage('pinset',this)">ตั้ง PIN</button>
   </nav>
+
+  <!-- เปิดงาน -->
   <div id="page-jobs" class="page active">
     <div class="sec-ttl">เปิดงานใหม่</div>
     <div class="card">
@@ -174,7 +283,7 @@ tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(
     <div id="job-list"><div class="loading">Loading...</div></div>
   </div>
 
-  <!-- DASHBOARD: เพิ่ม column "วันที่ส่งซอง" -->
+  <!-- Dashboard -->
   <div id="page-dashboard" class="page">
     <div class="stats-row">
       <div class="stat-c"><div class="stat-lbl">Total</div><div class="stat-val" id="st-total">0</div></div>
@@ -184,43 +293,20 @@ tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(
     </div>
     <div class="filter-row">
       <input type="text" id="dq" placeholder="ค้นหา..." oninput="renderDash()">
-      <select id="ds" onchange="renderDash()">
-        <option value="">ทุกสถานะ</option>
-        <option value="pending">Pending</option>
-        <option value="received">Received</option>
-        <option value="cancelled">Cancelled</option>
-      </select>
-      <select id="dm" onchange="renderDash()">
-        <option value="">ทุกเดือน</option>
-        <option value="1">มกราคม</option><option value="2">กุมภาพันธ์</option>
-        <option value="3">มีนาคม</option><option value="4">เมษายน</option>
-        <option value="5">พฤษภาคม</option><option value="6">มิถุนายน</option>
-        <option value="7">กรกฎาคม</option><option value="8">สิงหาคม</option>
-        <option value="9">กันยายน</option><option value="10">ตุลาคม</option>
-        <option value="11">พฤศจิกายน</option><option value="12">ธันวาคม</option>
-      </select>
+      <select id="ds" onchange="renderDash()"><option value="">ทุกสถานะ</option><option value="pending">Pending</option><option value="received">Received</option><option value="cancelled">Cancelled</option></select>
+      <select id="dm" onchange="renderDash()"><option value="">ทุกเดือน</option><option value="1">มกราคม</option><option value="2">กุมภาพันธ์</option><option value="3">มีนาคม</option><option value="4">เมษายน</option><option value="5">พฤษภาคม</option><option value="6">มิถุนายน</option><option value="7">กรกฎาคม</option><option value="8">สิงหาคม</option><option value="9">กันยายน</option><option value="10">ตุลาคม</option><option value="11">พฤศจิกายน</option><option value="12">ธันวาคม</option></select>
       <select id="dy" onchange="renderDash()"><option value="">ทุกปี</option></select>
       <button class="export-btn" onclick="exportExcel()">⬇ Export Excel</button>
     </div>
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr>
-            <th>Job ID</th>
-            <th>โครงการ</th>
-            <th>Supplier</th>
-            <th>ประเภท</th>
-            <th>Deadline</th>
-            <th>สถานะ</th>
-            <th>วันที่ Supplier ส่งซอง</th>
-            <th>รับเมื่อ (Admin)</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Job ID</th><th>โครงการ</th><th>Supplier</th><th>ประเภท</th><th>Deadline</th><th>สถานะ</th><th>วันที่ Supplier ส่งซอง</th><th>รับเมื่อ (Admin)</th></tr></thead>
         <tbody id="dash-body"></tbody>
       </table>
     </div>
   </div>
 
+  <!-- ตั้งค่า -->
   <div id="page-settings" class="page">
     <div class="sec-ttl">Email แจ้งเตือน</div>
     <div class="card">
@@ -233,32 +319,63 @@ tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(
       <div style="margin-top:12px;"><button class="gold-btn" onclick="saveSettings()">Save</button></div>
     </div>
   </div>
+
+  <!-- จัดการสมาชิก (Admin only) -->
+  <div id="page-members" class="page">
+    <div class="sec-ttl">จัดการสมาชิก</div>
+    <div class="card">
+      <h3>เพิ่มสมาชิกใหม่</h3>
+      <div style="display:flex;gap:8px;">
+        <input type="email" id="new-member-email" placeholder="email@company.com" style="flex:1;padding:10px;border:1px solid rgba(201,168,76,0.35);border-radius:2px;font-size:15px;background:rgba(255,252,242,0.7);color:var(--td);outline:none;" onkeydown="if(event.key==='Enter')addMember()">
+        <button class="ghost-btn" onclick="addMember()">+ เพิ่ม</button>
+      </div>
+      <div style="font-size:11px;color:var(--tl);margin-top:6px;">หลังเพิ่มแล้ว สมาชิกต้องเข้าระบบและตั้ง PIN เอง</div>
+    </div>
+    <div class="sec-ttl">รายชื่อสมาชิก</div>
+    <div id="members-list"></div>
+  </div>
+
+  <!-- ตั้ง PIN ของตัวเอง -->
+  <div id="page-pinset" class="page">
+    <div class="sec-ttl">ตั้ง / เปลี่ยน PIN ของฉัน</div>
+    <div class="card" style="max-width:360px;margin:0 auto;">
+      <h3>PIN 6 หลัก</h3>
+      <div style="font-size:13px;color:var(--tl);margin-bottom:16px;">PIN ใช้สำหรับยืนยันตัวตนเมื่อเข้าสู่ระบบ — ห้ามบอกผู้อื่น</div>
+      <div id="pinset-current-wrap" class="fld" style="margin-bottom:13px;">
+        <label>PIN เดิม <span style="font-size:10px;color:var(--tl);">(ถ้ายังไม่มีให้เว้นว่าง)</span></label>
+        <input type="password" id="pinset-current" maxlength="6" inputmode="numeric" placeholder="••••••" style="letter-spacing:0.3em;font-size:20px;">
+      </div>
+      <div class="fld" style="margin-bottom:13px;">
+        <label>PIN ใหม่ <span class="req">*</span></label>
+        <input type="password" id="pinset-new" maxlength="6" inputmode="numeric" placeholder="••••••" style="letter-spacing:0.3em;font-size:20px;">
+      </div>
+      <div class="fld" style="margin-bottom:16px;">
+        <label>ยืนยัน PIN ใหม่ <span class="req">*</span></label>
+        <input type="password" id="pinset-confirm" maxlength="6" inputmode="numeric" placeholder="••••••" style="letter-spacing:0.3em;font-size:20px;">
+      </div>
+      <button class="gold-btn" onclick="savePinSet()">🔐 บันทึก PIN</button>
+      <div id="pinset-msg" style="margin-top:10px;font-size:13px;min-height:18px;"></div>
+    </div>
+  </div>
 </div>
 
+<!-- Modals -->
 <div class="overlay" id="qr-modal">
   <div class="modal">
     <div class="modal-ttl">⛜ QR Code &mdash; ส่งให้ Supplier</div>
-    <div class="qr-area">
-      <div class="qr-cw" id="qr-wrap"></div>
-      <div class="qr-dr" id="qr-details"></div>
-    </div>
+    <div class="qr-area"><div class="qr-cw" id="qr-wrap"></div><div class="qr-dr" id="qr-details"></div></div>
     <div class="share-sec">
       <div class="share-ttl">Share QR Code</div>
-      <div class="share-btns">
-        <button class="gold-btn" onclick="saveQRImage()">💾 Save รูป (Line/แชร์)</button>
-      </div>
+      <div style="margin-bottom:10px;"><button class="gold-btn" onclick="saveQRImage()">💾 Save รูป (Line/แชร์)</button></div>
       <div style="height:1px;background:rgba(201,168,76,0.2);margin:10px 0;"></div>
       <div style="font-family:'Cinzel',serif;font-size:9px;color:var(--tl);text-transform:uppercase;margin-bottom:6px;">Send via Email</div>
-      <div class="email-row">
-        <input type="email" id="qr-email-inp" placeholder="supplier@company.com">
-        <button class="ghost-btn" onclick="sendQREmail()">Send</button>
-      </div>
+      <div class="email-row"><input type="email" id="qr-email-inp" placeholder="supplier@company.com"><button class="ghost-btn" onclick="sendQREmail()">Send</button></div>
       <div class="share-res" id="share-res"></div>
     </div>
     <button class="modal-close-btn" onclick="closeQR()">Close</button>
   </div>
 </div>
-<div class="overlay" id="recv-modal"><div class="modal"><div class="modal-ttl">📷 ยืนยันรับเอกสาร</div><div id="recv-job-info" style="background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:4px;padding:12px;margin-bottom:14px;font-size:13px;color:var(--td);"></div><div style="margin-bottom:12px;"><div style="font-family:'Cinzel',serif;font-size:9px;color:var(--gold-d);text-transform:uppercase;margin-bottom:8px;">แนบรูปซอง <span style="color:#C9A84C;">*</span> (บังคับ)</div><div style="display:flex;gap:8px;margin-bottom:10px;"><button class="ghost-btn" onclick="openCamera()" style="flex:1;">📷 ถ่ายรูป</button><button class="ghost-btn" onclick="document.getElementById('recv-file').click()" style="flex:1;">🖼 เลือกรูป</button></div><input type="file" id="recv-file" accept="image/*" style="display:none" onchange="onFileSelect(event)"><div id="recv-preview" style="display:none;text-align:center;margin-bottom:10px;"><img id="recv-img" style="max-width:100%;max-height:200px;border:1px solid rgba(201,168,76,0.3);border-radius:4px;object-fit:contain;"><div style="font-size:11px;color:#3A6B40;margin-top:4px;">✓ มีรูปแล้ว พร้อมยืนยัน</div></div><div id="camera-wrap" style="display:none;text-align:center;margin-bottom:10px;"><video id="cam-video" autoplay playsinline style="width:100%;max-height:240px;border-radius:4px;border:1px solid rgba(201,168,76,0.3);"></video><canvas id="cam-canvas" style="display:none;"></canvas><button class="gold-btn" style="margin-top:8px;" onclick="snapPhoto()">📸 ถ่ายรูป</button></div></div><div style="display:flex;gap:8px;margin-top:4px;"><button class="ghost-btn" style="flex:1;" onclick="closeRecvModal()">ยกเลิก</button><button class="gold-btn" id="recv-confirm-btn" style="flex:2;opacity:0.45;cursor:not-allowed;" onclick="confirmReceived()" disabled>✓ ยืนยันรับเอกสาร</button></div></div></div>
+<div class="overlay" id="recv-modal"><div class="modal"><div class="modal-ttl">📷 ยืนยันรับเอกสาร</div><div id="recv-job-info" style="background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:4px;padding:12px;margin-bottom:14px;font-size:13px;color:var(--td);"></div><div style="margin-bottom:12px;"><div style="font-family:'Cinzel',serif;font-size:9px;color:var(--gold-d);text-transform:uppercase;margin-bottom:8px;">แนบรูปซอง <span style="color:#C9A84C;">*</span></div><div style="display:flex;gap:8px;margin-bottom:10px;"><button class="ghost-btn" onclick="openCamera()" style="flex:1;">📷 ถ่ายรูป</button><button class="ghost-btn" onclick="document.getElementById('recv-file').click()" style="flex:1;">🖼 เลือกรูป</button></div><input type="file" id="recv-file" accept="image/*" style="display:none" onchange="onFileSelect(event)"><div id="recv-preview" style="display:none;text-align:center;margin-bottom:10px;"><img id="recv-img" style="max-width:100%;max-height:200px;border:1px solid rgba(201,168,76,0.3);border-radius:4px;object-fit:contain;"><div style="font-size:11px;color:#3A6B40;margin-top:4px;">✓ มีรูปแล้ว พร้อมยืนยัน</div></div><div id="camera-wrap" style="display:none;text-align:center;margin-bottom:10px;"><video id="cam-video" autoplay playsinline style="width:100%;max-height:240px;border-radius:4px;border:1px solid rgba(201,168,76,0.3);"></video><canvas id="cam-canvas" style="display:none;"></canvas><button class="gold-btn" style="margin-top:8px;" onclick="snapPhoto()">📸 ถ่ายรูป</button></div></div><div style="display:flex;gap:8px;margin-top:4px;"><button class="ghost-btn" style="flex:1;" onclick="closeRecvModal()">ยกเลิก</button><button class="gold-btn" id="recv-confirm-btn" style="flex:2;opacity:0.45;cursor:not-allowed;" onclick="confirmReceived()" disabled>✓ ยืนยันรับเอกสาร</button></div></div></div>
 <div class="toast" id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -267,44 +384,148 @@ tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(
 var supId=new URLSearchParams(window.location.search).get('sup');
 if(supId){window.location.href='/supplier.html?sup='+supId;}
 
-var jobs=[],currentUser=null,curJob=null,notifyEmails=[];
+var jobs=[],currentUser=null,currentEmail=null,curJob=null,notifyEmails=[];
+var selectedMemberEmail=null,pinBuffer='';
 
 async function api(p){
   var r=await fetch('/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
   return r.json();
 }
 
+// ============================================================
+// LOGIN FLOW
+// ============================================================
 async function doLogin(){
-  var b=document.getElementById('login-btn');b.disabled=true;b.textContent='กำลังเข้าสู่ระบบ...';
+  var b=document.getElementById('login-btn');b.disabled=true;b.textContent='กำลังตรวจสอบ...';
   var u=document.getElementById('l-user').value.trim(),p=document.getElementById('l-pass').value.trim();
   var d=await api({action:'login',username:u,password:p});
   if(d.ok){
     currentUser=d.name;
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('admin-shell').style.display='block';
-    document.getElementById('hdr-user').textContent='👤 '+d.name;
-    loadJobs();loadConfig();
+    await loadMemberScreen();
   }else{
-    document.getElementById('login-err').style.display='block';
-    b.disabled=false;b.textContent='Sign In';
+    document.getElementById('login-err').textContent='Username หรือ Password ไม่ถูกต้อง';
+    b.disabled=false;b.textContent='ถัดไป →';
   }
 }
 
-function doLogout(){
-  currentUser=null;
-  document.getElementById('admin-shell').style.display='none';
-  document.getElementById('login-screen').style.display='flex';
-  document.getElementById('l-user').value='';document.getElementById('l-pass').value='';
-  document.getElementById('login-err').style.display='none';
-  document.getElementById('login-btn').disabled=false;document.getElementById('login-btn').textContent='Sign In';
+async function loadMemberScreen(){
+  document.getElementById('screen-login').style.display='none';
+  document.getElementById('screen-member').style.display='flex';
+  var d=await api({action:'getMembers'});
+  var list=document.getElementById('member-list');
+  if(!d.ok||!d.members.length){
+    list.innerHTML='<div style="font-size:13px;color:var(--tl);text-align:center;padding:12px;">ยังไม่มีสมาชิก — Admin เพิ่มสมาชิกในหน้า "สมาชิก" ได้เลย</div>';
+    document.getElementById('member-next-btn').disabled=false;
+    document.getElementById('member-next-btn').textContent='ข้ามขั้นตอนนี้ →';
+    document.getElementById('member-next-btn').onclick=function(){enterShell(null);};
+    return;
+  }
+  list.innerHTML=d.members.map(function(m){
+    return'<div class="member-card" id="mc-'+btoa(m.email)+'" onclick="selectMember(\''+m.email+'\','+m.hasPin+')">'
+      +'<div class="member-email">'+m.email+'</div>'
+      +(m.hasPin?'':'<div class="member-no-pin">⚠ ยังไม่ได้ตั้ง PIN</div>')
+      +'</div>';
+  }).join('');
 }
 
+function selectMember(email,hasPin){
+  selectedMemberEmail=email;
+  document.querySelectorAll('.member-card').forEach(function(c){c.classList.remove('selected');});
+  var key=btoa(email);
+  var card=document.getElementById('mc-'+key);
+  if(card)card.classList.add('selected');
+  var btn=document.getElementById('member-next-btn');
+  btn.disabled=false;btn.textContent='ถัดไป →';
+  btn.onclick=function(){goToPin();};
+}
+
+function goToPin(){
+  if(!selectedMemberEmail)return;
+  document.getElementById('screen-member').style.display='none';
+  document.getElementById('screen-pin').style.display='flex';
+  document.getElementById('pin-sub').textContent=selectedMemberEmail;
+  pinBuffer='';renderPinDots();
+  document.getElementById('pin-err').textContent='';
+  document.getElementById('lock-info').style.display='none';
+}
+
+function goToStep1(){
+  document.getElementById('screen-member').style.display='none';
+  document.getElementById('screen-login').style.display='flex';
+  document.getElementById('login-btn').disabled=false;
+  document.getElementById('login-btn').textContent='ถัดไป →';
+  document.getElementById('login-err').textContent='';
+}
+
+function goToStep2(){
+  document.getElementById('screen-pin').style.display='none';
+  document.getElementById('screen-member').style.display='flex';
+  pinBuffer='';renderPinDots();
+}
+
+// PIN numpad
+function pinPress(d){
+  if(pinBuffer.length>=6)return;
+  pinBuffer+=d;renderPinDots();
+  if(pinBuffer.length===6)submitPin();
+}
+function pinBackspace(){pinBuffer=pinBuffer.slice(0,-1);renderPinDots();}
+function pinClear(){pinBuffer='';renderPinDots();}
+function renderPinDots(){
+  for(var i=0;i<6;i++){
+    var dot=document.getElementById('pd'+i);
+    dot.classList.toggle('filled',i<pinBuffer.length);
+    dot.classList.toggle('active',i===pinBuffer.length);
+    dot.textContent=i<pinBuffer.length?'●':'';
+  }
+}
+
+async function submitPin(){
+  document.getElementById('pin-err').textContent='';
+  var d=await api({action:'verifyPin',email:selectedMemberEmail,pin:pinBuffer});
+  if(d.ok){
+    currentEmail=selectedMemberEmail;
+    enterShell(selectedMemberEmail);
+  }else{
+    pinBuffer='';renderPinDots();
+    if(d.locked){
+      document.getElementById('lock-info').style.display='block';
+      document.getElementById('lock-info').textContent=d.error;
+    }else{
+      document.getElementById('pin-err').textContent=d.error;
+    }
+  }
+}
+
+function enterShell(email){
+  document.getElementById('screen-login').style.display='none';
+  document.getElementById('screen-member').style.display='none';
+  document.getElementById('screen-pin').style.display='none';
+  document.getElementById('admin-shell').style.display='block';
+  var displayName=email||currentUser||'Admin';
+  document.getElementById('hdr-user').textContent='👤 '+displayName;
+  loadJobs();loadConfig();
+}
+
+function doLogout(){
+  currentUser=null;currentEmail=null;selectedMemberEmail=null;pinBuffer='';
+  document.getElementById('admin-shell').style.display='none';
+  document.getElementById('screen-login').style.display='flex';
+  document.getElementById('l-user').value='';document.getElementById('l-pass').value='';
+  document.getElementById('login-err').textContent='';
+  document.getElementById('login-btn').disabled=false;document.getElementById('login-btn').textContent='ถัดไป →';
+}
+
+// ============================================================
+// APP
+// ============================================================
 function showPage(p,btn){
   document.querySelectorAll('.page').forEach(function(e){e.classList.remove('active');});
   document.querySelectorAll('.nb').forEach(function(e){e.classList.remove('active');});
   document.getElementById('page-'+p).classList.add('active');btn.classList.add('active');
   if(p==='dashboard'){updateStats();renderDash();}
   if(p==='settings')loadConfig();
+  if(p==='members')loadMembers();
 }
 
 async function loadJobs(){var d=await api({action:'getJobs'});if(d.ok){jobs=d.jobs;renderJobs();}}
@@ -313,14 +534,12 @@ async function createJob(){
   var proj=document.getElementById('j-proj').value.trim(),ref=document.getElementById('j-ref').value.trim(),sup=document.getElementById('j-sup').value.trim(),type=document.getElementById('j-type').value;
   if(!proj||!ref||!sup||!type){alert('กรุณากรอกข้อมูลที่มี * ให้ครบ');return;}
   var btn=document.getElementById('create-btn');btn.disabled=true;btn.textContent='กำลังสร้าง...';
-  var d=await api({action:'createJob',proj:proj,ref:ref,supplier:sup,type:type,deadline:document.getElementById('j-ddl').value,email:document.getElementById('j-email').value.trim(),note:document.getElementById('j-note').value.trim(),createdBy:currentUser||'Admin'});
+  var d=await api({action:'createJob',proj:proj,ref:ref,supplier:sup,type:type,deadline:document.getElementById('j-ddl').value,email:document.getElementById('j-email').value.trim(),note:document.getElementById('j-note').value.trim(),createdBy:currentEmail||currentUser||'Admin'});
   btn.disabled=false;btn.textContent='⛜ สร้างงาน + Gen QR Code';
   if(d.ok){
     ['j-proj','j-ref','j-sup','j-email','j-note'].forEach(function(i){document.getElementById(i).value='';});
     document.getElementById('j-type').value='';document.getElementById('j-ddl').value='';
-    await loadJobs();
-    var nj=jobs.find(function(j){return j.id===d.jobId;});
-    if(nj)openQR(nj);
+    await loadJobs();var nj=jobs.find(function(j){return j.id===d.jobId;});if(nj)openQR(nj);
     showToast('⛜ สร้างงาน '+d.jobId+' แล้ว');
   }else{alert('เกิดข้อผิดพลาด: '+(d.error||'Unknown'));}
 }
@@ -331,178 +550,95 @@ function renderJobs(){
   var filtered=jobs.filter(function(j){return !jobFilter||j.status===jobFilter;});
   var totalPages=Math.max(1,Math.ceil(filtered.length/jobPerPage));
   if(jobPage>totalPages)jobPage=totalPages;
-  var start=(jobPage-1)*jobPerPage;
-  var paged=filtered.slice(start,start+jobPerPage);
+  var start=(jobPage-1)*jobPerPage,paged=filtered.slice(start,start+jobPerPage);
   if(!filtered.length){el.innerHTML='<div class="loading">No jobs yet</div>';return;}
-  var html=paged.map(function(j){
-    return'<div class="job-item"><div class="job-top"><div><div class="job-id">'+j.id+'</div><div class="job-name">'+j.proj+'</div><div class="job-meta">'+(j.deadline?' &middot; Deadline: '+j.deadline:'')+(j.note?'<br><span style="font-size:11px;color:#9A7C3A;">📝 '+j.note+'</span>':'')+'</div><div class="job-by">Created by '+j.createdBy+' &middot; '+j.createdAt+'</div></div><div class="job-acts"><span class="sp '+(j.status==='received'?'s-recv':j.status==='cancelled'?'s-cancel':'s-pend')+'">'+(j.status==='received'?'Received':j.status==='cancelled'?'Cancelled':'Pending')+'</span><button class="sm-btn" onclick="openQR(jobs.find(function(x){return x.id===\''+j.id+'\';}));">QR Code</button>'+(j.status==='pending'?'<button class="sm-btn green" onclick="markReceived(\''+j.id+'\')">Mark Received</button><button class="sm-btn" style="border-color:rgba(180,60,40,0.3);color:#8B3A1A;background:rgba(180,60,40,0.06);" onclick="cancelJob(\''+j.id+'\')">ยกเลิก</button>':'')+'</div></div></div>';
-  }).join('');
-  var filterHtml='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;"><select onchange="jobFilter=this.value;jobPage=1;renderJobs();" style="padding:7px 10px;border:1px solid rgba(201,168,76,0.3);border-radius:2px;font-size:12px;background:rgba(255,252,242,0.8);color:var(--td);font-family:Sarabun,sans-serif;outline:none;"><option value="">ทุกสถานะ</option><option value="pending"'+(jobFilter==='pending'?' selected':'')+'>Pending</option><option value="received"'+(jobFilter==='received'?' selected':'')+'>Received</option><option value="cancelled"'+(jobFilter==='cancelled'?' selected':'')+'>Cancelled</option></select><span style="font-size:12px;color:var(--tl);">ทั้งหมด '+filtered.length+' รายการ</span></div>';
+  var html=paged.map(function(j){return'<div class="job-item"><div class="job-top"><div><div class="job-id">'+j.id+'</div><div class="job-name">'+j.proj+'</div><div class="job-meta">'+(j.deadline?' &middot; Deadline: '+j.deadline:'')+(j.note?'<br><span style="font-size:11px;color:#9A7C3A;">📝 '+j.note+'</span>':'')+'</div><div class="job-by">Created by '+j.createdBy+' &middot; '+j.createdAt+'</div></div><div class="job-acts"><span class="sp '+(j.status==='received'?'s-recv':j.status==='cancelled'?'s-cancel':'s-pend')+'">'+(j.status==='received'?'Received':j.status==='cancelled'?'Cancelled':'Pending')+'</span><button class="sm-btn" onclick="openQR(jobs.find(function(x){return x.id===\''+j.id+'\';}));">QR Code</button>'+(j.status==='pending'?'<button class="sm-btn green" onclick="markReceived(\''+j.id+'\')">Mark Received</button><button class="sm-btn red" onclick="cancelJob(\''+j.id+'\')">ยกเลิก</button>':'')+'</div></div></div>';}).join('');
+  var filterHtml='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;"><select onchange="jobFilter=this.value;jobPage=1;renderJobs();" style="padding:7px 10px;border:1px solid rgba(201,168,76,0.3);border-radius:2px;font-size:12px;background:rgba(255,252,242,0.8);color:var(--td);outline:none;"><option value="">ทุกสถานะ</option><option value="pending"'+(jobFilter==='pending'?' selected':'')+'>Pending</option><option value="received"'+(jobFilter==='received'?' selected':'')+'>Received</option><option value="cancelled"'+(jobFilter==='cancelled'?' selected':'')+'>Cancelled</option></select><span style="font-size:12px;color:var(--tl);">ทั้งหมด '+filtered.length+' รายการ</span></div>';
   var pageHtml='<div style="display:flex;gap:6px;justify-content:center;margin-top:12px;flex-wrap:wrap;">'+(jobPage>1?'<button class="ghost-btn" onclick="jobPage--;renderJobs();">&#8592; ก่อนหน้า</button>':'')+Array.from({length:totalPages},function(_,i){return'<button class="'+(i+1===jobPage?'gold-btn':'ghost-btn')+'" style="padding:6px 12px;" onclick="jobPage='+(i+1)+';renderJobs();">'+(i+1)+'</button>';}).join('')+(jobPage<totalPages?'<button class="ghost-btn" onclick="jobPage++;renderJobs();">ถัดไป &#8594;</button>':'')+'</div>';
   el.innerHTML=filterHtml+html+pageHtml;
 }
 
 var recvJobId=null,recvPhotoBase64=null,camStream=null;
-function markReceived(id){
-  var j=jobs.find(function(x){return x.id===id;});if(!j)return;
-  recvJobId=id;recvPhotoBase64=null;
-  document.getElementById('recv-job-info').innerHTML='<b>'+j.proj+'</b><br>'+j.supplier+' · '+j.type+(j.deadline?' · Deadline: '+j.deadline:'');
-  document.getElementById('recv-preview').style.display='none';document.getElementById('camera-wrap').style.display='none';
-  var btn=document.getElementById('recv-confirm-btn');btn.disabled=true;btn.style.opacity='0.45';btn.style.cursor='not-allowed';btn.textContent='✓ ยืนยันรับเอกสาร';
-  document.getElementById('recv-modal').classList.add('open');
-}
+function markReceived(id){var j=jobs.find(function(x){return x.id===id;});if(!j)return;recvJobId=id;recvPhotoBase64=null;document.getElementById('recv-job-info').innerHTML='<b>'+j.proj+'</b><br>'+j.supplier+' · '+j.type+(j.deadline?' · Deadline: '+j.deadline:'');document.getElementById('recv-preview').style.display='none';document.getElementById('camera-wrap').style.display='none';var btn=document.getElementById('recv-confirm-btn');btn.disabled=true;btn.style.opacity='0.45';btn.style.cursor='not-allowed';btn.textContent='✓ ยืนยันรับเอกสาร';document.getElementById('recv-modal').classList.add('open');}
 function closeRecvModal(){stopCamera();document.getElementById('recv-modal').classList.remove('open');recvJobId=null;recvPhotoBase64=null;}
 function onFileSelect(e){var file=e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){setRecvPhoto(ev.target.result);};reader.readAsDataURL(file);}
-function setRecvPhoto(base64){var img=new Image();img.onload=function(){var canvas=document.createElement('canvas');var maxW=1024,maxH=1024;var w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}if(h>maxH){w=w*maxH/h;h=maxH;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);var compressed=canvas.toDataURL('image/jpeg',0.7);recvPhotoBase64=compressed;document.getElementById('recv-img').src=compressed;document.getElementById('recv-preview').style.display='block';document.getElementById('camera-wrap').style.display='none';stopCamera();var btn=document.getElementById('recv-confirm-btn');btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';};img.src=base64;}
-function openCamera(){document.getElementById('camera-wrap').style.display='block';document.getElementById('recv-preview').style.display='none';navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(function(stream){camStream=stream;document.getElementById('cam-video').srcObject=stream;}).catch(function(){alert('ไม่สามารถเปิดกล้องได้ กรุณาเลือกรูปแทน');document.getElementById('camera-wrap').style.display='none';});}
+function setRecvPhoto(base64){var img=new Image();img.onload=function(){var canvas=document.createElement('canvas');var maxW=1024,maxH=1024,w=img.width,h=img.height;if(w>maxW){h=h*maxW/w;w=maxW;}if(h>maxH){w=w*maxH/h;h=maxH;}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);var compressed=canvas.toDataURL('image/jpeg',0.7);recvPhotoBase64=compressed;document.getElementById('recv-img').src=compressed;document.getElementById('recv-preview').style.display='block';document.getElementById('camera-wrap').style.display='none';stopCamera();var btn=document.getElementById('recv-confirm-btn');btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';};img.src=base64;}
+function openCamera(){document.getElementById('camera-wrap').style.display='block';document.getElementById('recv-preview').style.display='none';navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(function(stream){camStream=stream;document.getElementById('cam-video').srcObject=stream;}).catch(function(){alert('ไม่สามารถเปิดกล้องได้');document.getElementById('camera-wrap').style.display='none';});}
 function stopCamera(){if(camStream){camStream.getTracks().forEach(function(t){t.stop();});camStream=null;}document.getElementById('cam-video').srcObject=null;}
 function snapPhoto(){var v=document.getElementById('cam-video'),c=document.getElementById('cam-canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);setRecvPhoto(c.toDataURL('image/jpeg',0.85));}
-async function confirmReceived(){
-  if(!recvPhotoBase64){alert('กรุณาถ่ายรูปหรือแนบรูปก่อน');return;}
-  var btn=document.getElementById('recv-confirm-btn');btn.disabled=true;btn.textContent='⏳ กำลังบันทึก...';
-  var d=await api({action:'markReceived',jobId:recvJobId,photoBase64:recvPhotoBase64});
-  if(d.ok){closeRecvModal();showToast('✓ รับเอกสารแล้ว — ส่ง Email แจ้ง Supplier แล้ว');await loadJobs();}
-  else{alert('เกิดข้อผิดพลาด: '+(d.error||'Unknown'));btn.disabled=false;btn.textContent='✓ ยืนยันรับเอกสาร';}
-}
-async function cancelJob(id){
-  if(!confirm('ยืนยันการยกเลิกงานนี้?\n\nระบบจะเก็บ Log การยกเลิกไว้ใน Google Sheets'))return;
-  var d=await api({action:'cancelJob',jobId:id});
-  if(d.ok){showToast('✓ ยกเลิกงานแล้ว');await loadJobs();}
-}
+async function confirmReceived(){if(!recvPhotoBase64){alert('กรุณาถ่ายรูปหรือแนบรูปก่อน');return;}var btn=document.getElementById('recv-confirm-btn');btn.disabled=true;btn.textContent='⏳ กำลังบันทึก...';var d=await api({action:'markReceived',jobId:recvJobId,photoBase64:recvPhotoBase64});if(d.ok){closeRecvModal();showToast('✓ รับเอกสารแล้ว');await loadJobs();}else{alert('เกิดข้อผิดพลาด: '+(d.error||'Unknown'));btn.disabled=false;btn.textContent='✓ ยืนยันรับเอกสาร';}}
+async function cancelJob(id){if(!confirm('ยืนยันการยกเลิกงานนี้?'))return;var d=await api({action:'cancelJob',jobId:id});if(d.ok){showToast('✓ ยกเลิกงานแล้ว');await loadJobs();}}
 
-function openQR(job){
-  if(!job)return;curJob=job;
-  var wrap=document.getElementById('qr-wrap');wrap.innerHTML='';
-  var url=window.location.origin+'/?sup='+encodeURIComponent(job.id);
-  new QRCode(wrap,{text:url,width:160,height:160,colorDark:'#3A2E0E',colorLight:'#FFFCF2'});
-  document.getElementById('qr-details').innerHTML='<div class="row"><span class="l">Job ID</span><span class="v">'+job.id+'</span></div><div class="row"><span class="l">โครงการ</span><span class="v">'+job.proj+'</span></div><div class="row"><span class="l">Supplier</span><span class="v">'+job.supplier+'</span></div><div class="row"><span class="l">ประเภท</span><span class="v">'+job.type+'</span></div>'+(job.deadline?'<div class="row"><span class="l">Deadline</span><span class="v">'+job.deadline+'</span></div>':'')+'<div class="row"><span class="l">Created by</span><span class="v">'+job.createdBy+'</span></div>';
-  if(job.email)document.getElementById('qr-email-inp').value=job.email;
-  document.getElementById('share-res').style.display='none';
-  document.getElementById('qr-modal').classList.add('open');
-}
+function openQR(job){if(!job)return;curJob=job;var wrap=document.getElementById('qr-wrap');wrap.innerHTML='';var url=window.location.origin+'/?sup='+encodeURIComponent(job.id);new QRCode(wrap,{text:url,width:160,height:160,colorDark:'#3A2E0E',colorLight:'#FFFCF2'});document.getElementById('qr-details').innerHTML='<div class="row"><span class="l">Job ID</span><span class="v">'+job.id+'</span></div><div class="row"><span class="l">โครงการ</span><span class="v">'+job.proj+'</span></div><div class="row"><span class="l">Supplier</span><span class="v">'+job.supplier+'</span></div><div class="row"><span class="l">ประเภท</span><span class="v">'+job.type+'</span></div>'+(job.deadline?'<div class="row"><span class="l">Deadline</span><span class="v">'+job.deadline+'</span></div>':'')+'<div class="row"><span class="l">Created by</span><span class="v">'+job.createdBy+'</span></div>';if(job.email)document.getElementById('qr-email-inp').value=job.email;document.getElementById('share-res').style.display='none';document.getElementById('qr-modal').classList.add('open');}
 function closeQR(){document.getElementById('qr-modal').classList.remove('open');}
-function saveQRImage(){if(!curJob)return;var wrap=document.getElementById('qr-wrap'),img=wrap.querySelector('img')||wrap.querySelector('canvas'),off=document.createElement('canvas');off.width=320;off.height=380;var ctx=off.getContext('2d');ctx.fillStyle='#FFFCF2';ctx.fillRect(0,0,320,380);ctx.strokeStyle='rgba(201,168,76,0.6)';ctx.lineWidth=1.5;ctx.strokeRect(8,8,304,364);ctx.fillStyle='#8B6914';ctx.font='bold 11px serif';ctx.textAlign='center';ctx.fillText('ALIGNMENT DOC TRACKING',160,34);ctx.fillText('SINGHA COMPLEX',160,50);var finish=function(){ctx.fillStyle='#3A2E0E';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText(curJob.id,160,240);ctx.fillText(curJob.proj,160,256);ctx.fillText(curJob.supplier+' · '+curJob.type,160,272);if(curJob.deadline)ctx.fillText('Deadline: '+curJob.deadline,160,288);ctx.fillStyle='#9A7C3A';ctx.font='9px sans-serif';ctx.fillText('สแกน QR นี้ตอนนำส่งเอกสาร',160,316);var a=document.createElement('a');a.href=off.toDataURL('image/png');a.download='QR_'+curJob.id+'.png';a.click();var res=document.getElementById('share-res');res.style.display='block';res.style.color='#3A6B40';res.textContent='✓ บันทึกรูปแล้ว — แชร์ผ่าน Line ได้เลย';};if(img){var tmp=new Image();tmp.crossOrigin='anonymous';tmp.onload=function(){ctx.drawImage(tmp,80,64,160,160);finish();};tmp.src=img.src||img.toDataURL();}else finish();}
-async function sendQREmail(){
-  var em=document.getElementById('qr-email-inp').value.trim();
-  if(!em||!em.includes('@')){alert('กรุณากรอก Email ที่ถูกต้อง');return;}
-  var res=document.getElementById('share-res');res.style.display='block';res.style.color='var(--tm)';res.textContent='⏳ กำลังส่ง...';
-  var d=await api({action:'sendQREmail',jobId:curJob.id,email:em,proj:curJob.proj,ref:curJob.ref,type:curJob.type,supplier:curJob.supplier,deadline:curJob.deadline||''});
-  if(d.ok){res.style.color='#3A6B40';res.textContent='⛜ ส่ง QR ไปยัง '+em+' แล้ว';}
-  else{res.style.color='#8B3A1A';res.textContent='ส่งไม่สำเร็จ: '+(d.error||'Unknown');}
-}
+function saveQRImage(){if(!curJob)return;var wrap=document.getElementById('qr-wrap'),img=wrap.querySelector('img')||wrap.querySelector('canvas'),off=document.createElement('canvas');off.width=320;off.height=380;var ctx=off.getContext('2d');ctx.fillStyle='#FFFCF2';ctx.fillRect(0,0,320,380);ctx.strokeStyle='rgba(201,168,76,0.6)';ctx.lineWidth=1.5;ctx.strokeRect(8,8,304,364);ctx.fillStyle='#8B6914';ctx.font='bold 11px serif';ctx.textAlign='center';ctx.fillText('ALIGNMENT DOC TRACKING',160,34);ctx.fillText('SINGHA COMPLEX',160,50);var finish=function(){ctx.fillStyle='#3A2E0E';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText(curJob.id,160,240);ctx.fillText(curJob.proj,160,256);ctx.fillText(curJob.supplier+' · '+curJob.type,160,272);if(curJob.deadline)ctx.fillText('Deadline: '+curJob.deadline,160,288);ctx.fillStyle='#9A7C3A';ctx.font='9px sans-serif';ctx.fillText('สแกน QR นี้ตอนนำส่งเอกสาร',160,316);var a=document.createElement('a');a.href=off.toDataURL('image/png');a.download='QR_'+curJob.id+'.png';a.click();var res=document.getElementById('share-res');res.style.display='block';res.style.color='#3A6B40';res.textContent='✓ บันทึกรูปแล้ว';};if(img){var tmp=new Image();tmp.crossOrigin='anonymous';tmp.onload=function(){ctx.drawImage(tmp,80,64,160,160);finish();};tmp.src=img.src||img.toDataURL();}else finish();}
+async function sendQREmail(){var em=document.getElementById('qr-email-inp').value.trim();if(!em||!em.includes('@')){alert('กรุณากรอก Email ที่ถูกต้อง');return;}var res=document.getElementById('share-res');res.style.display='block';res.style.color='var(--tm)';res.textContent='⏳ กำลังส่ง...';var d=await api({action:'sendQREmail',jobId:curJob.id,email:em,proj:curJob.proj,ref:curJob.ref,type:curJob.type,supplier:curJob.supplier,deadline:curJob.deadline||''});if(d.ok){res.style.color='#3A6B40';res.textContent='⛜ ส่ง QR ไปยัง '+em+' แล้ว';}else{res.style.color='#8B3A1A';res.textContent='ส่งไม่สำเร็จ: '+(d.error||'Unknown');}}
 
-function updateStats(){
-  var fy=document.getElementById('dy');
-  var years=[...new Set(jobs.map(function(j){return j.createdAt?j.createdAt.split('/')[2]&&j.createdAt.split('/')[2].substring(0,4):'';}).filter(Boolean))].sort();
-  var curY=fy?fy.value:'';
-  if(fy){fy.innerHTML='<option value="">ทุกปี</option>'+years.map(function(y){return'<option value="'+y+'"'+(y===curY?' selected':'')+'>'+y+'</option>';}).join('');}
-  document.getElementById('st-total').textContent=jobs.length;
-  document.getElementById('st-recv').textContent=jobs.filter(function(j){return j.status==='received';}).length;
-  document.getElementById('st-pend').textContent=jobs.filter(function(j){return j.status==='pending';}).length;
-  document.getElementById('st-cancel').textContent=jobs.filter(function(j){return j.status==='cancelled';}).length;
-}
+function updateStats(){var fy=document.getElementById('dy');var years=[...new Set(jobs.map(function(j){return j.createdAt?j.createdAt.split('/')[2]&&j.createdAt.split('/')[2].substring(0,4):'';}).filter(Boolean))].sort();var curY=fy?fy.value:'';if(fy){fy.innerHTML='<option value="">ทุกปี</option>'+years.map(function(y){return'<option value="'+y+'"'+(y===curY?' selected':'')+'>'+y+'</option>';}).join('');}document.getElementById('st-total').textContent=jobs.length;document.getElementById('st-recv').textContent=jobs.filter(function(j){return j.status==='received';}).length;document.getElementById('st-pend').textContent=jobs.filter(function(j){return j.status==='pending';}).length;document.getElementById('st-cancel').textContent=jobs.filter(function(j){return j.status==='cancelled';}).length;}
 
-function renderDash(){
-  var q=document.getElementById('dq').value.toLowerCase();
-  var fs=document.getElementById('ds').value;
-  var fm=document.getElementById('dm')?document.getElementById('dm').value:'';
-  var fy=document.getElementById('dy')?document.getElementById('dy').value:'';
-  var tb=document.getElementById('dash-body');
-  var f=jobs.filter(function(j){
-    var matchQ=(j.proj+j.supplier+j.ref).toLowerCase().includes(q);
-    var matchS=!fs||j.status===fs;
-    var matchM=true,matchY=true;
-    if(j.deadline){
-      var parts=j.deadline.split('-');
-      if(fm)matchM=parts[1]===fm.padStart(2,'0');
-      if(fy)matchY=parts[0]===fy;
-    } else {
-      if(fm||fy)return false;
-    }
-    return matchQ&&matchS&&matchM&&matchY;
-  });
-  if(!f.length){tb.innerHTML='<tr><td colspan="8" class="loading">No data</td></tr>';return;}
-  // ✅ เพิ่ม column submittedAt (วันที่ Supplier กดส่งซอง) และ receivedAt (Admin รับ)
-  tb.innerHTML=f.map(function(j){
-    return'<tr>'+
-      '<td style="font-family:Cinzel,serif;font-size:9px;color:#8B6914;">'+j.id+'</td>'+
-      '<td><div style="font-weight:500;">'+j.proj+'</div><div style="font-size:10px;color:#9A7C3A;">'+j.ref+'</div></td>'+
-      '<td>'+j.supplier+'</td>'+
-      '<td>'+j.type+'</td>'+
-      '<td style="font-size:11px;color:#9A7C3A;">'+(j.deadline||'—')+'</td>'+
-      '<td><span class="sp '+(j.status==='received'?'s-recv':j.status==='cancelled'?'s-cancel':'s-pend')+'">'+(j.status==='received'?'Received':j.status==='cancelled'?'Cancelled':'Pending')+'</span></td>'+
-      '<td style="font-size:11px;color:#6B5520;">'+(j.submittedAt||'—')+'</td>'+
-      '<td style="font-size:10px;color:#9A7C3A;">'+(j.receivedAt||'—')+'</td>'+
-      '</tr>';
-  }).join('');
-}
+function renderDash(){var q=document.getElementById('dq').value.toLowerCase();var fs=document.getElementById('ds').value;var fm=document.getElementById('dm')?document.getElementById('dm').value:'';var fy=document.getElementById('dy')?document.getElementById('dy').value:'';var tb=document.getElementById('dash-body');var f=jobs.filter(function(j){var matchQ=(j.proj+j.supplier+j.ref).toLowerCase().includes(q);var matchS=!fs||j.status===fs;var matchM=true,matchY=true;if(j.deadline){var parts=j.deadline.split('-');if(fm)matchM=parts[1]===fm.padStart(2,'0');if(fy)matchY=parts[0]===fy;}else{if(fm||fy)return false;}return matchQ&&matchS&&matchM&&matchY;});if(!f.length){tb.innerHTML='<tr><td colspan="8" class="loading">No data</td></tr>';return;}tb.innerHTML=f.map(function(j){return'<tr><td style="font-family:Cinzel,serif;font-size:9px;color:#8B6914;">'+j.id+'</td><td><div style="font-weight:500;">'+j.proj+'</div><div style="font-size:10px;color:#9A7C3A;">'+j.ref+'</div></td><td>'+j.supplier+'</td><td>'+j.type+'</td><td style="font-size:11px;color:#9A7C3A;">'+(j.deadline||'—')+'</td><td><span class="sp '+(j.status==='received'?'s-recv':j.status==='cancelled'?'s-cancel':'s-pend')+'">'+(j.status==='received'?'Received':j.status==='cancelled'?'Cancelled':'Pending')+'</span></td><td style="font-size:11px;color:#6B5520;">'+(j.submittedAt||'—')+'</td><td style="font-size:10px;color:#9A7C3A;">'+(j.receivedAt||'—')+'</td></tr>';}).join('');}
 
-// ✅ Export Excel พร้อม header ครบ และมี column วันที่ส่งซอง
-function exportExcel(){
-  if(!jobs.length){alert('ยังไม่มีข้อมูล');return;}
-  var rows=jobs.map(function(j){
-    return{
-      'Job ID':           j.id,
-      'โครงการ':          j.proj,
-      'เลขที่':           j.ref,
-      'Supplier':         j.supplier,
-      'ประเภทเอกสาร':     j.type,
-      'Deadline':         j.deadline||'',
-      'สร้างโดย':         j.createdBy,
-      'สร้างเมื่อ':       j.createdAt,
-      'สถานะ':            j.status==='received'?'รับแล้ว':j.status==='cancelled'?'ยกเลิก':'รอรับ',
-      'วันที่ Supplier ส่งซอง': j.submittedAt||'',
-      'รับเมื่อ (Admin)': j.receivedAt||''
-    };
-  });
+function exportExcel(){if(!jobs.length){alert('ยังไม่มีข้อมูล');return;}var rows=jobs.map(function(j){return{'Job ID':j.id,'โครงการ':j.proj,'เลขที่':j.ref,'Supplier':j.supplier,'ประเภทเอกสาร':j.type,'Deadline':j.deadline||'','สร้างโดย':j.createdBy,'สร้างเมื่อ':j.createdAt,'สถานะ':j.status==='received'?'รับแล้ว':j.status==='cancelled'?'ยกเลิก':'รอรับ','วันที่ Supplier ส่งซอง':j.submittedAt||'','รับเมื่อ (Admin)':j.receivedAt||''};});var headers=['Job ID','โครงการ','เลขที่','Supplier','ประเภทเอกสาร','Deadline','สร้างโดย','สร้างเมื่อ','สถานะ','วันที่ Supplier ส่งซอง','รับเมื่อ (Admin)'];var ws=XLSX.utils.json_to_sheet(rows,{header:headers});ws['!cols']=[{wch:22},{wch:35},{wch:18},{wch:25},{wch:22},{wch:14},{wch:14},{wch:22},{wch:10},{wch:24},{wch:22}];var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Alignment Doc Tracking');XLSX.writeFile(wb,'AlignmentDocTracking_'+new Date().toISOString().slice(0,10)+'.xlsx');}
 
-  // สร้าง worksheet และกำหนด column order ชัดเจน
-  var headers=['Job ID','โครงการ','เลขที่','Supplier','ประเภทเอกสาร','Deadline','สร้างโดย','สร้างเมื่อ','สถานะ','วันที่ Supplier ส่งซอง','รับเมื่อ (Admin)'];
-  var ws=XLSX.utils.json_to_sheet(rows,{header:headers});
-
-  // ปรับความกว้าง column
-  ws['!cols']=[
-    {wch:22},{wch:35},{wch:18},{wch:25},{wch:22},{wch:14},
-    {wch:14},{wch:22},{wch:10},{wch:24},{wch:22}
-  ];
-
-  var wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Alignment Doc Tracking');
-  XLSX.writeFile(wb,'AlignmentDocTracking_'+new Date().toISOString().slice(0,10)+'.xlsx');
-}
-
-async function loadConfig(){
-  var d=await api({action:'getConfig'});
-  if(!d.ok)return;
-  notifyEmails=d.config.notifyEmails||[];
-  renderEmails();
-}
-
-function renderEmails(){
-  var el=document.getElementById('email-list');
-  if(!notifyEmails.length){el.innerHTML='<div style="font-size:13px;color:var(--tl);">ยังไม่มี Email</div>';return;}
-  el.innerHTML=notifyEmails.map(function(e,i){
-    return'<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:2px;font-size:13px;"><span style="color:var(--td);">'+e+'</span><button onclick="removeEmail('+i+')" style="background:none;border:none;cursor:pointer;color:var(--tl);font-size:14px;">✕</button></div>';
-  }).join('');
-}
-
-function addEmail(){
-  var inp=document.getElementById('new-email'),v=inp.value.trim();
-  if(!v||!v.includes('@')){alert('Email ไม่ถูกต้อง');return;}
-  if(notifyEmails.includes(v)){alert('มีแล้ว');return;}
-  notifyEmails.push(v);inp.value='';renderEmails();
-}
+async function loadConfig(){var d=await api({action:'getConfig'});if(!d.ok)return;notifyEmails=d.config.notifyEmails||[];renderEmails();}
+function renderEmails(){var el=document.getElementById('email-list');if(!notifyEmails.length){el.innerHTML='<div style="font-size:13px;color:var(--tl);">ยังไม่มี Email</div>';return;}el.innerHTML=notifyEmails.map(function(e,i){return'<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:2px;font-size:13px;"><span style="color:var(--td);">'+e+'</span><button onclick="removeEmail('+i+')" style="background:none;border:none;cursor:pointer;color:var(--tl);font-size:14px;">✕</button></div>';}).join('');}
+function addEmail(){var inp=document.getElementById('new-email'),v=inp.value.trim();if(!v||!v.includes('@')){alert('Email ไม่ถูกต้อง');return;}if(notifyEmails.includes(v)){alert('มีแล้ว');return;}notifyEmails.push(v);inp.value='';renderEmails();}
 function removeEmail(i){notifyEmails.splice(i,1);renderEmails();}
+async function saveSettings(){var d=await api({action:'saveConfig',config:{notifyEmails:notifyEmails}});if(d.ok)showToast('⛜ บันทึก Email แจ้งเตือนแล้ว');}
 
-async function saveSettings(){
-  var d=await api({action:'saveConfig',config:{notifyEmails:notifyEmails}});
-  if(d.ok)showToast('⛜ บันทึก Email แจ้งเตือนแล้ว');
+// Member management
+async function loadMembers(){
+  var d=await api({action:'getMembers'});
+  var el=document.getElementById('members-list');
+  if(!d.ok||!d.members.length){el.innerHTML='<div class="loading">ยังไม่มีสมาชิก</div>';return;}
+  el.innerHTML=d.members.map(function(m){
+    return'<div class="member-row">'
+      +'<div class="member-info"><div>'+m.email+'</div>'
+      +'<div class="pin-status '+(m.hasPin?'ok':'no')+'">'+(m.hasPin?'✓ ตั้ง PIN แล้ว':'⚠ ยังไม่ได้ตั้ง PIN')+'</div></div>'
+      +'<div style="display:flex;gap:6px;">'
+      +'<button class="sm-btn red" onclick="resetPin(\''+m.email+'\')">Reset PIN</button>'
+      +'<button class="sm-btn red" onclick="removeMember(\''+m.email+'\')">ลบ</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
 }
 
-function showToast(msg){
-  var t=document.getElementById('toast');t.innerHTML=msg;t.style.display='block';
-  setTimeout(function(){t.style.display='none';},3000);
+async function addMember(){
+  var email=document.getElementById('new-member-email').value.trim();
+  if(!email||!email.includes('@')){alert('Email ไม่ถูกต้อง');return;}
+  var d=await api({action:'addMember',email});
+  if(d.ok){document.getElementById('new-member-email').value='';showToast('✓ เพิ่มสมาชิก '+email+' แล้ว');await loadMembers();}
+  else alert('เกิดข้อผิดพลาด: '+(d.error||'Unknown'));
 }
+
+async function removeMember(email){
+  if(!confirm('ยืนยันลบสมาชิก '+email+'?'))return;
+  var d=await api({action:'removeMember',email});
+  if(d.ok){showToast('✓ ลบสมาชิกแล้ว');await loadMembers();}
+}
+
+async function resetPin(email){
+  if(!confirm('Reset PIN ของ '+email+'?\nสมาชิกจะต้องตั้ง PIN ใหม่เมื่อเข้าสู่ระบบ'))return;
+  var d=await api({action:'resetMemberPin',email});
+  if(d.ok){showToast('✓ Reset PIN แล้ว');await loadMembers();}
+}
+
+// Set PIN (own)
+async function savePinSet(){
+  var email=currentEmail;
+  if(!email){alert('กรุณาเลือก Email ของคุณก่อน (ต้องผ่าน Step 2)');return;}
+  var currentPin=document.getElementById('pinset-current').value.trim();
+  var newPin=document.getElementById('pinset-new').value.trim();
+  var confirmPin=document.getElementById('pinset-confirm').value.trim();
+  var msg=document.getElementById('pinset-msg');
+  if(!newPin||newPin.length!==6||!/^\d{6}$/.test(newPin)){msg.style.color='#8B3A1A';msg.textContent='PIN ต้องเป็นตัวเลข 6 หลักเท่านั้น';return;}
+  if(newPin!==confirmPin){msg.style.color='#8B3A1A';msg.textContent='PIN ใหม่ไม่ตรงกัน';return;}
+  var d=await api({action:'setPin',email,currentPin,newPin});
+  if(d.ok){msg.style.color='#3A6B40';msg.textContent='✓ บันทึก PIN เรียบร้อยแล้ว';document.getElementById('pinset-current').value='';document.getElementById('pinset-new').value='';document.getElementById('pinset-confirm').value='';}
+  else{msg.style.color='#8B3A1A';msg.textContent=d.error||'เกิดข้อผิดพลาด';}
+}
+
+function showToast(msg){var t=document.getElementById('toast');t.innerHTML=msg;t.style.display='block';setTimeout(function(){t.style.display='none';},3000);}
 </script>
 </body>
 </html>
