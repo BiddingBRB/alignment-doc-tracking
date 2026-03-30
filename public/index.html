@@ -276,7 +276,19 @@ tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(
           <div class="fld"><label>Email Supplier</label><input type="email" id="j-email" placeholder="supplier@company.com"></div>
         </div>
         <div class="fld"><label>หมายเหตุ</label><textarea id="j-note" placeholder="รายละเอียดเพิ่มเติม"></textarea></div>
-        <div><button class="gold-btn" id="create-btn" onclick="createJob()">⛜ สร้างงาน + Gen QR Code</button></div>
+        <div id="draft-banner" style="display:none;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.35);border-radius:4px;padding:9px 13px;font-size:12px;color:var(--gold-d);">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <span>📋 มี Draft ที่บันทึกไว้ — กดโหลดเพื่อกรอกต่อ</span>
+            <div style="display:flex;gap:8px;">
+              <button class="sm-btn" onclick="loadDraft()">โหลด Draft</button>
+              <button class="sm-btn red" onclick="clearDraft()">ลบ Draft</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="ghost-btn" id="draft-btn" onclick="saveDraft()" style="flex:1;">💾 Save Draft</button>
+          <button class="gold-btn" id="create-btn" onclick="createJob()" style="flex:2;">⛜ สร้างงาน + Gen QR Code</button>
+        </div>
       </div>
     </div>
     <div class="sec-ttl">รายการงานที่เปิด</div>
@@ -505,6 +517,7 @@ function enterShell(email){
   var displayName=email||currentUser||'Admin';
   document.getElementById('hdr-user').textContent='👤 '+displayName;
   loadJobs();loadConfig();
+  checkDraftBanner();
 }
 
 function doLogout(){
@@ -519,13 +532,81 @@ function doLogout(){
 // ============================================================
 // APP
 // ============================================================
+// Draft dirty tracking
+var formDirty = false;
+function markDirty(){formDirty=true;}
+function markClean(){formDirty=false;}
+
+// ตรวจว่ามีข้อมูลในฟอร์มหรือเปล่า
+function formHasData(){
+  return !!(document.getElementById('j-proj').value.trim()
+    ||document.getElementById('j-ref').value.trim()
+    ||document.getElementById('j-sup').value.trim()
+    ||document.getElementById('j-email').value.trim()
+    ||document.getElementById('j-note').value.trim()
+    ||document.getElementById('j-type').value
+    ||document.getElementById('j-ddl').value);
+}
+
 function showPage(p,btn){
+  // Nav guard: ถ้ากำลังอยู่หน้า jobs และมีข้อมูลค้างอยู่
+  var currentPage=document.querySelector('.page.active');
+  if(currentPage&&currentPage.id==='page-jobs'&&formHasData()&&p!=='jobs'){
+    var choice=confirm('⚠ มีข้อมูลที่ยังไม่ได้บันทึกอยู่ในฟอร์ม\n\nกด OK = ออกจากหน้านี้ (ข้อมูลจะหาย)\nกด Cancel = อยู่ต่อ\n\n💡 กด "Save Draft" ก่อนออกเพื่อเก็บข้อมูลไว้');
+    if(!choice)return; // ยกเลิก ไม่เปลี่ยนหน้า
+  }
   document.querySelectorAll('.page').forEach(function(e){e.classList.remove('active');});
   document.querySelectorAll('.nb').forEach(function(e){e.classList.remove('active');});
   document.getElementById('page-'+p).classList.add('active');btn.classList.add('active');
   if(p==='dashboard'){updateStats();renderDash();}
   if(p==='settings')loadConfig();
   if(p==='members')loadMembers();
+  if(p==='jobs'){checkDraftBanner();}
+}
+
+// Draft: บันทึกลง localStorage
+function saveDraft(){
+  var draft={
+    proj:document.getElementById('j-proj').value,
+    ref:document.getElementById('j-ref').value,
+    sup:document.getElementById('j-sup').value,
+    type:document.getElementById('j-type').value,
+    ddl:document.getElementById('j-ddl').value,
+    email:document.getElementById('j-email').value,
+    note:document.getElementById('j-note').value,
+    savedAt:new Date().toLocaleString('th-TH',{timeZone:'Asia/Bangkok'})
+  };
+  localStorage.setItem('jobDraft', JSON.stringify(draft));
+  showToast('💾 บันทึก Draft แล้ว — '+draft.savedAt);
+  checkDraftBanner();
+}
+
+function loadDraft(){
+  var raw=localStorage.getItem('jobDraft');
+  if(!raw)return;
+  var d=JSON.parse(raw);
+  document.getElementById('j-proj').value=d.proj||'';
+  document.getElementById('j-ref').value=d.ref||'';
+  document.getElementById('j-sup').value=d.sup||'';
+  document.getElementById('j-type').value=d.type||'';
+  document.getElementById('j-ddl').value=d.ddl||'';
+  document.getElementById('j-email').value=d.email||'';
+  document.getElementById('j-note').value=d.note||'';
+  showToast('📋 โหลด Draft แล้ว (บันทึกเมื่อ '+d.savedAt+')');
+}
+
+function clearDraft(){
+  if(!confirm('ลบ Draft ที่บันทึกไว้?'))return;
+  localStorage.removeItem('jobDraft');
+  checkDraftBanner();
+  showToast('🗑 ลบ Draft แล้ว');
+}
+
+function checkDraftBanner(){
+  var banner=document.getElementById('draft-banner');
+  if(!banner)return;
+  var hasDraft=!!localStorage.getItem('jobDraft');
+  banner.style.display=hasDraft?'block':'none';
 }
 
 async function loadJobs(){var d=await api({action:'getJobs'});if(d.ok){jobs=d.jobs;renderJobs();}}
@@ -539,6 +620,8 @@ async function createJob(){
   if(d.ok){
     ['j-proj','j-ref','j-sup','j-email','j-note'].forEach(function(i){document.getElementById(i).value='';});
     document.getElementById('j-type').value='';document.getElementById('j-ddl').value='';
+    localStorage.removeItem('jobDraft'); // ล้าง Draft หลังสร้างสำเร็จ
+    checkDraftBanner();
     await loadJobs();var nj=jobs.find(function(j){return j.id===d.jobId;});if(nj)openQR(nj);
     showToast('⛜ สร้างงาน '+d.jobId+' แล้ว');
   }else{alert('เกิดข้อผิดพลาด: '+(d.error||'Unknown'));}
