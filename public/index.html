@@ -192,38 +192,60 @@ tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(
 <div class="login-wrap" id="screen-pin" style="display:none;">
   <div class="login-box">
     <div class="login-logo">🔐</div>
-    <div class="login-title">กรอก PIN</div>
+    <div class="login-title" id="pin-title">กรอก PIN</div>
     <div class="login-sub" id="pin-sub"></div>
     <div class="step-indicator">
       <div class="step-dot done"></div>
       <div class="step-dot done"></div>
       <div class="step-dot active"></div>
     </div>
-    <div style="font-family:'Cinzel',serif;font-size:9px;color:var(--tl);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:12px;">Step 3 — ยืนยันตัวตน</div>
+    <div style="font-family:'Cinzel',serif;font-size:9px;color:var(--tl);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:12px;" id="pin-step-label">Step 3 — ยืนยันตัวตน</div>
     <div class="lock-info" id="lock-info" style="display:none;"></div>
-    <div class="pin-wrap" id="pin-display">
-      <div class="pin-dot" id="pd0"></div>
-      <div class="pin-dot" id="pd1"></div>
-      <div class="pin-dot" id="pd2"></div>
-      <div class="pin-dot" id="pd3"></div>
-      <div class="pin-dot" id="pd4"></div>
-      <div class="pin-dot" id="pd5"></div>
+
+    <!-- โหมดปกติ: กรอก PIN เพื่อ Login -->
+    <div id="pin-login-mode">
+      <div class="pin-wrap" id="pin-display">
+        <div class="pin-dot" id="pd0"></div>
+        <div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div>
+        <div class="pin-dot" id="pd4"></div>
+        <div class="pin-dot" id="pd5"></div>
+      </div>
+      <div class="pin-numpad">
+        <button class="pin-key" onclick="pinPress('1')">1</button>
+        <button class="pin-key" onclick="pinPress('2')">2</button>
+        <button class="pin-key" onclick="pinPress('3')">3</button>
+        <button class="pin-key" onclick="pinPress('4')">4</button>
+        <button class="pin-key" onclick="pinPress('5')">5</button>
+        <button class="pin-key" onclick="pinPress('6')">6</button>
+        <button class="pin-key" onclick="pinPress('7')">7</button>
+        <button class="pin-key" onclick="pinPress('8')">8</button>
+        <button class="pin-key" onclick="pinPress('9')">9</button>
+        <button class="pin-key del" onclick="pinClear()">ล้าง</button>
+        <button class="pin-key" onclick="pinPress('0')">0</button>
+        <button class="pin-key del" onclick="pinBackspace()">⌫</button>
+      </div>
+      <div class="login-err" id="pin-err"></div>
     </div>
-    <div class="pin-numpad">
-      <button class="pin-key" onclick="pinPress('1')">1</button>
-      <button class="pin-key" onclick="pinPress('2')">2</button>
-      <button class="pin-key" onclick="pinPress('3')">3</button>
-      <button class="pin-key" onclick="pinPress('4')">4</button>
-      <button class="pin-key" onclick="pinPress('5')">5</button>
-      <button class="pin-key" onclick="pinPress('6')">6</button>
-      <button class="pin-key" onclick="pinPress('7')">7</button>
-      <button class="pin-key" onclick="pinPress('8')">8</button>
-      <button class="pin-key" onclick="pinPress('9')">9</button>
-      <button class="pin-key del" onclick="pinClear()">ล้าง</button>
-      <button class="pin-key" onclick="pinPress('0')">0</button>
-      <button class="pin-key del" onclick="pinBackspace()">⌫</button>
+
+    <!-- โหมดตั้ง PIN ใหม่ครั้งแรก (ยังไม่มี PIN) -->
+    <div id="pin-setup-mode" style="display:none;">
+      <div style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:4px;padding:11px 13px;font-size:12px;color:var(--gold-d);margin-bottom:14px;">
+        🔑 ครั้งแรก! กรุณาตั้ง PIN 6 หลักของคุณ
+      </div>
+      <div class="lf">
+        <label>PIN ใหม่ (6 หลัก)</label>
+        <input type="password" id="setup-pin1" maxlength="6" inputmode="numeric" placeholder="••••••" style="letter-spacing:0.3em;font-size:20px;text-align:center;">
+      </div>
+      <div class="lf" style="margin-top:10px;">
+        <label>ยืนยัน PIN ใหม่</label>
+        <input type="password" id="setup-pin2" maxlength="6" inputmode="numeric" placeholder="••••••" style="letter-spacing:0.3em;font-size:20px;text-align:center;">
+      </div>
+      <button class="login-btn" style="margin-top:14px;" onclick="submitSetupPin()">🔐 ตั้ง PIN และเข้าระบบ</button>
+      <div class="login-err" id="setup-pin-err" style="margin-top:8px;"></div>
     </div>
-    <div class="login-err" id="pin-err"></div>
+
     <button class="back-btn" onclick="goToStep2()">← เปลี่ยนผู้ใช้</button>
   </div>
 </div>
@@ -442,14 +464,18 @@ async function loadMemberScreen(){
 
 function selectMember(email,hasPin){
   selectedMemberEmail=email;
+  selectedMemberHasPin=hasPin;
   document.querySelectorAll('.member-card').forEach(function(c){c.classList.remove('selected');});
   var key=btoa(email);
   var card=document.getElementById('mc-'+key);
   if(card)card.classList.add('selected');
   var btn=document.getElementById('member-next-btn');
-  btn.disabled=false;btn.textContent='ถัดไป →';
+  btn.disabled=false;
+  btn.textContent=hasPin?'ถัดไป →':'ตั้ง PIN →';
   btn.onclick=function(){goToPin();};
 }
+
+var selectedMemberHasPin = true;
 
 function goToPin(){
   if(!selectedMemberEmail)return;
@@ -459,6 +485,40 @@ function goToPin(){
   pinBuffer='';renderPinDots();
   document.getElementById('pin-err').textContent='';
   document.getElementById('lock-info').style.display='none';
+
+  if(!selectedMemberHasPin){
+    // ยังไม่มี PIN → แสดงโหมดตั้ง PIN ใหม่
+    document.getElementById('pin-title').textContent='ตั้ง PIN ใหม่';
+    document.getElementById('pin-step-label').textContent='Step 3 — ตั้ง PIN ครั้งแรก';
+    document.getElementById('pin-login-mode').style.display='none';
+    document.getElementById('pin-setup-mode').style.display='block';
+    document.getElementById('setup-pin1').value='';
+    document.getElementById('setup-pin2').value='';
+    document.getElementById('setup-pin-err').textContent='';
+  } else {
+    // มี PIN แล้ว → แสดง numpad ปกติ
+    document.getElementById('pin-title').textContent='กรอก PIN';
+    document.getElementById('pin-step-label').textContent='Step 3 — ยืนยันตัวตน';
+    document.getElementById('pin-login-mode').style.display='block';
+    document.getElementById('pin-setup-mode').style.display='none';
+  }
+}
+
+async function submitSetupPin(){
+  var p1=document.getElementById('setup-pin1').value.trim();
+  var p2=document.getElementById('setup-pin2').value.trim();
+  var errEl=document.getElementById('setup-pin-err');
+  if(!p1||p1.length!==6||!/^\d{6}$/.test(p1)){errEl.textContent='PIN ต้องเป็นตัวเลข 6 หลัก';return;}
+  if(p1!==p2){errEl.textContent='PIN ทั้งสองช่องไม่ตรงกัน';return;}
+  errEl.textContent='';
+  var d=await api({action:'setPin',email:selectedMemberEmail,currentPin:'',newPin:p1});
+  if(d.ok){
+    currentEmail=selectedMemberEmail;
+    enterShell(selectedMemberEmail);
+    showToast('🔐 ตั้ง PIN เรียบร้อย — ยินดีต้อนรับ!');
+  } else {
+    errEl.textContent=d.error||'เกิดข้อผิดพลาด';
+  }
 }
 
 function goToStep1(){
