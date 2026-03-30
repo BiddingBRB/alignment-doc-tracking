@@ -156,7 +156,42 @@ async function saveConfig(config) {
 }
 
 // --- MEMBERS (A=email, B=pin_hash, C=active) ---
-async function ensureMembersSheet() {
+// --- LOGIN LOG (A=timestamp, B=email, C=status, D=detail, E=ip) ---
+async function ensureLoginLogSheet() {
+  try {
+    await ensureSheet('LoginLog');
+    const sheets = getSheets();
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'LoginLog!A1:E1' });
+    if (!res.data.values || res.data.values[0]?.[0] !== 'timestamp') {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SHEET_ID, range: 'LoginLog!A1:E1', valueInputOption: 'RAW',
+        requestBody: { values: [['timestamp', 'email', 'status', 'detail', 'ip']] }
+      });
+    }
+  } catch (e) { console.error('ensureLoginLogSheet error:', e.message); }
+}
+
+async function writeLoginLog(email, status, detail, ip) {
+  try {
+    const sheets = getSheets();
+    const timestamp = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID, range: 'LoginLog!A1', valueInputOption: 'RAW',
+      requestBody: { values: [[timestamp, email, status, detail, ip || '—']] }
+    });
+  } catch (e) { console.error('writeLoginLog error:', e.message); }
+}
+
+async function readLoginLog() {
+  try {
+    const sheets = getSheets();
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'LoginLog!A2:E' });
+    const rows = res.data.values || [];
+    return rows.map(r => ({
+      timestamp: r[0]||'', email: r[1]||'', status: r[2]||'', detail: r[3]||'', ip: r[4]||''
+    })).reverse(); // ล่าสุดก่อน
+  } catch (e) { console.error('readLoginLog error:', e.message); return []; }
+}
   try {
     await ensureSheet('Members');
     const sheets = getSheets();
@@ -268,7 +303,12 @@ app.post('/api', async (req, res) => {
   // Step 1: Username + Password
   if (action === 'login') {
     const { username, password } = req.body;
-    if (username === ADMIN_USER && password === ADMIN_PASS) return res.json({ ok: true, name: ADMIN_NAME });
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '—';
+    if (username === ADMIN_USER && password === ADMIN_PASS) {
+      writeLoginLog(username, 'success', 'Login ผ่าน Username/Password', ip).catch(()=>{});
+      return res.json({ ok: true, name: ADMIN_NAME });
+    }
+    writeLoginLog(username||'(ไม่ระบุ)', 'failed', 'Username หรือ Password ผิด', ip).catch(()=>{});
     return res.json({ ok: false, error: 'Invalid credentials' });
   }
 
@@ -281,9 +321,11 @@ app.post('/api', async (req, res) => {
   // Step 3: Verify PIN
   if (action === 'verifyPin') {
     const { email, pin } = req.body;
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '—';
     if (!email || !pin) return res.json({ ok: false, error: 'ข้อมูลไม่ครบ' });
     if (isLocked(email)) {
       const mins = getLockRemainingMinutes(email);
+      writeLoginLog(email, 'locked', `บัญชีถูกล็อก เหลือ ${mins} นาที`, ip).catch(()=>{});
       return res.json({ ok: false, error: `บัญชีถูกล็อก กรุณารอ ${mins} นาที`, locked: true, minutes: mins });
     }
     const members = await readMembers();
@@ -292,11 +334,16 @@ app.post('/api', async (req, res) => {
     if (!member.pin_hash) return res.json({ ok: false, error: 'ยังไม่ได้ตั้ง PIN กรุณาติดต่อ Admin', noPin: true });
     if (verifyPin(pin, member.pin_hash)) {
       resetAttempts(email);
+      writeLoginLog(email, 'success', 'เข้าระบบสำเร็จ', ip).catch(()=>{});
       return res.json({ ok: true, email });
     }
     recordFailedAttempt(email);
     const l = getLockout(email);
-    if (l.lockedUntil) return res.json({ ok: false, error: 'PIN ผิด 3 ครั้ง — บัญชีถูกล็อก 15 นาที', locked: true, minutes: 15 });
+    if (l.lockedUntil) {
+      writeLoginLog(email, 'locked', 'PIN ผิด 3 ครั้ง — ล็อกบัญชี 15 นาที', ip).catch(()=>{});
+      return res.json({ ok: false, error: 'PIN ผิด 3 ครั้ง — บัญชีถูกล็อก 15 นาที', locked: true, minutes: 15 });
+    }
+    writeLoginLog(email, 'failed', `PIN ไม่ถูกต้อง (ครั้งที่ ${l.attempts})`, ip).catch(()=>{});
     return res.json({ ok: false, error: `PIN ไม่ถูกต้อง เหลืออีก ${3 - l.attempts} ครั้ง` });
   }
 
@@ -395,6 +442,11 @@ app.post('/api', async (req, res) => {
     } catch(e) { return res.json({ ok:false, error:e.message }); }
   }
 
+  if (action === 'getLoginLog') {
+    const logs = await readLoginLog();
+    return res.json({ ok: true, logs });
+  }
+
   res.json({ ok:false, error:'Unknown action' });
 });
 
@@ -403,4 +455,5 @@ app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   await ensureHeader();
   await ensureMembersSheet();
+  await ensureLoginLogSheet();
 });
