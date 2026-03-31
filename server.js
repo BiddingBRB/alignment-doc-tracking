@@ -156,6 +156,20 @@ async function saveConfig(config) {
 }
 
 // --- MEMBERS (A=email, B=pin_hash, C=active) ---
+async function ensureMembersSheet() {
+  try {
+    await ensureSheet('Members');
+    const sheets = getSheets();
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Members!A1:C1' });
+    if (!res.data.values || res.data.values[0]?.[0] !== 'email') {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SHEET_ID, range: 'Members!A1:C1', valueInputOption: 'RAW',
+        requestBody: { values: [['email','pin_hash','active']] }
+      });
+    }
+  } catch (e) { console.error('ensureMembersSheet error:', e.message); }
+}
+
 // --- LOGIN LOG (A=timestamp, B=email, C=status, D=detail, E=ip) ---
 async function ensureLoginLogSheet() {
   try {
@@ -189,20 +203,8 @@ async function readLoginLog() {
     const rows = res.data.values || [];
     return rows.map(r => ({
       timestamp: r[0]||'', email: r[1]||'', status: r[2]||'', detail: r[3]||'', ip: r[4]||''
-    })).reverse(); // ล่าสุดก่อน
+    })).reverse();
   } catch (e) { console.error('readLoginLog error:', e.message); return []; }
-}
-  try {
-    await ensureSheet('Members');
-    const sheets = getSheets();
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Members!A1:C1' });
-    if (!res.data.values || res.data.values[0]?.[0] !== 'email') {
-      await sheets.spreadsheets.values.update({
-        spreadsheetId: SHEET_ID, range: 'Members!A1:C1', valueInputOption: 'RAW',
-        requestBody: { values: [['email','pin_hash','active']] }
-      });
-    }
-  } catch (e) { console.error('ensureMembersSheet error:', e.message); }
 }
 
 async function readMembers() {
