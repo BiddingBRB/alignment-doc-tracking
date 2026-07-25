@@ -293,6 +293,24 @@ async function uploadPhoto(base64Data, jobId) {
 // =========================================================
 // ROUTES
 // =========================================================
+// =========================================================
+// CPG BIDDING TRACKER INTEGRATION — read-only status API
+// ให้ระบบ CPG อ่านสถานะการรับเอกสารตาม "เลขที่โครงการ" (= รหัสงาน CPG)
+// อ่านอย่างเดียว ไม่แก้ไขข้อมูลใดๆ · เปลี่ยน key ได้ด้วย env CPG_API_KEY (ถ้าเปลี่ยน ต้องแก้ ADT_KEY ฝั่ง CPG ให้ตรงกัน)
+// =========================================================
+const CPG_API_KEY = process.env.CPG_API_KEY || 'cpg-adt-2026';
+app.get('/api/cpg-status', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  try {
+    if ((req.query.key || '') !== CPG_API_KEY) return res.status(403).json({ ok: false, error: 'forbidden' });
+    const ref = String(req.query.ref || '').trim();
+    if (!ref) return res.json({ ok: true, jobs: [] });
+    const jobs = await readJobs();
+    const match = jobs.filter(j => String(j.ref || '').trim() === ref);
+    res.json({ ok: true, jobs: match.map(j => ({ id: j.id, supplier: j.supplier, type: j.type, status: j.status, deadline: j.deadline || '', submittedAt: j.submittedAt || '', receivedAt: j.receivedAt || '' })) });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 app.get('/sup/:jobId', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'supplier.html')); });
 app.get('*', (req, res) => {
   if (req.query.sup) res.sendFile(path.join(__dirname, 'public', 'supplier.html'));
