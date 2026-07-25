@@ -884,7 +884,7 @@ function showToast(msg){var t=document.getElementById('toast');t.innerHTML=msg;t
     var setV=function(id,val){var el=document.getElementById(id);if(el&&val)el.value=val;};
     setV('j-proj',q.get('proj'));
     setV('j-ref',q.get('ref'));
-    setV('j-sup',q.get('sup'));
+    setV('j-sup',q.get('vend')); /* ใช้ vend ไม่ใช่ sup — sup ถูกจองให้หน้า Vendor แล้ว */
     setV('j-ddl',q.get('due'));
     setV('j-note',q.get('note'));
     var t=q.get('type');
