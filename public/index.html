@@ -874,5 +874,25 @@ function exportLoginLog(){
 
 function showToast(msg){var t=document.getElementById('toast');t.innerHTML=msg;t.style.display='block';setTimeout(function(){t.style.display='none';},3000);}
 </script>
+<script>
+/* ⛜ CPG Prefill — เปิดจากปุ่ม "Gen QR รับซอง" ในระบบ CPG Bidding Tracker จะกรอกฟอร์มเปิดงานให้อัตโนมัติ
+   พารามิเตอร์: prefill=1, proj=ชื่อโครงการ, ref=รหัสงาน CPG, sup=ชื่อ Vendor, type=ประเภทเอกสาร, due=deadline, email */
+(function(){
+  try{
+    var q=new URLSearchParams(window.location.search);
+    if(!q.get('prefill'))return;
+    var setV=function(id,val){var el=document.getElementById(id);if(el&&val)el.value=val;};
+    setV('j-proj',q.get('proj'));
+    setV('j-ref',q.get('ref'));
+    setV('j-sup',q.get('sup'));
+    setV('j-ddl',q.get('due'));
+    setV('j-note',q.get('note'));
+    var t=q.get('type');
+    if(t){var sel=document.getElementById('j-type');if(sel){for(var i=0;i<sel.options.length;i++){var o=sel.options[i];if((o.value||'').indexOf(t)>=0||(o.text||'').indexOf(t)>=0){sel.selectedIndex=i;break;}}}}
+    var em=q.get('email');
+    if(em){var ei=document.getElementById('j-email-inp');if(ei){ei.value=em;try{ei.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));}catch(e){}}}
+  }catch(e){console.error('CPG prefill error',e);}
+})();
+</script>
 </body>
 </html>
