@@ -10,7 +10,9 @@ app.use(express.json({ limit: '20mb' }));
 app.use(express.static('public'));
 
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'admin1234';
+// 🔒 v2 (1 พ.ย. 2569): ไม่มีรหัสสำรองแล้ว — ต้องตั้ง ADMIN_PASS ใน Vercel › Environment Variables ไม่งั้น login ไม่ได้
+// ADT_PASS (ถ้าตั้ง) ใช้แทน ADMIN_PASS — เพิ่มตัวใหม่ใน Vercel ได้โดยไม่ต้องแก้/ลบตัวเดิม
+const ADMIN_PASS = process.env.ADT_PASS || process.env.ADMIN_PASS || '';
 const ADMIN_NAME = process.env.ADMIN_NAME || 'Admin';
 const PROJECT = 'Alignment Doc Tracking';
 const SHEET_ID = process.env.GOOGLE_SHEETS_ID;
@@ -30,6 +32,41 @@ function hashPin(pin) {
 function verifyPin(pin, hash) {
   return hashPin(pin) === hash;
 }
+
+// =========================================================
+// 🔒 SESSION TOKEN (v2) — ทุกคำสั่งหลังบ้านต้องมีบัตรผ่าน ไม่ใช่กั้นแค่หน้าเว็บ
+// pre  = ผ่านขั้น 1 (รหัส admin) แล้ว · อายุ 10 นาที · ใช้ได้แค่เลือก email / ใส่ PIN / ตั้ง PIN ครั้งแรก
+// user = ผ่าน PIN แล้ว · อายุ 12 ชม. · ใช้ได้ทุกคำสั่ง
+// ลายเซ็นใช้ SESSION_SECRET (ถ้าไม่ตั้ง จะสร้างจากคีย์ลับ Google + ADMIN_PASS ที่มีใน Vercel อยู่แล้ว)
+// =========================================================
+const SESSION_SECRET = process.env.SESSION_SECRET ||
+  crypto.createHash('sha256').update('adt-session|' + (process.env.GOOGLE_SERVICE_ACCOUNT_KEY || '') + '|' + ADMIN_PASS).digest('hex');
+const PRE_TTL = 10 * 60 * 1000, USER_TTL = 12 * 60 * 60 * 1000;
+function b64u(buf) { return Buffer.from(buf).toString('base64').replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_'); }
+function signToken(payload) {
+  const body = b64u(JSON.stringify(payload));
+  const sig = b64u(crypto.createHmac('sha256', SESSION_SECRET).update(body).digest());
+  return body + '.' + sig;
+}
+function readToken(tok) {
+  try {
+    const [body, sig] = String(tok || '').split('.');
+    if (!body || !sig) return null;
+    const good = b64u(crypto.createHmac('sha256', SESSION_SECRET).update(body).digest());
+    if (sig.length !== good.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(good))) return null;
+    const p = JSON.parse(Buffer.from(body.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString());
+    if (!p.exp || Date.now() > p.exp) return null;
+    return p;
+  } catch (e) { return null; }
+}
+function safeEqual(a, b) {
+  const x = crypto.createHash('sha256').update(String(a)).digest(), y = crypto.createHash('sha256').update(String(b)).digest();
+  return crypto.timingSafeEqual(x, y);
+}
+// คำสั่งที่ไม่ต้องมีบัตรผ่าน: login + หน้า Supplier (เปิดจาก QR)
+const PUBLIC_ACTIONS = new Set(['login', 'getJobById', 'supplierSubmit']);
+// คำสั่งที่ใช้บัตร pre ได้ (ระหว่าง login)
+const PRE_ACTIONS = new Set(['getMembers', 'verifyPin', 'setPin']);
 
 // In-memory lockout (acceptable for Vercel serverless)
 const lockouts = {};
@@ -318,15 +355,27 @@ app.get('*', (req, res) => {
 });
 
 app.post('/api', async (req, res) => {
-  const { action } = req.body;
+  const { action } = req.body || {};
+
+  // 🔒 ตรวจบัตรผ่านก่อนทำทุกคำสั่ง
+  let session = null;
+  if (!PUBLIC_ACTIONS.has(action)) {
+    session = readToken(req.body.token);
+    const okType = session && (session.t === 'user' || (session.t === 'pre' && PRE_ACTIONS.has(action)));
+    if (!okType) return res.status(401).json({ ok: false, auth: false, error: 'กรุณาเข้าสู่ระบบใหม่' });
+  }
 
   // Step 1: Username + Password
   if (action === 'login') {
     const { username, password } = req.body;
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '—';
-    if (username === ADMIN_USER && password === ADMIN_PASS) {
+    if (!ADMIN_PASS) return res.json({ ok: false, error: 'ระบบยังไม่ได้ตั้งรหัส ADMIN_PASS — ติดต่อผู้ดูแล' });
+    if (safeEqual(username || '', ADMIN_USER) && safeEqual(password || '', ADMIN_PASS)) {
       writeLoginLog(username, 'success', 'Login ผ่าน Username/Password', ip).catch(()=>{});
-      return res.json({ ok: true, name: ADMIN_NAME });
+      const members = await readMembers();
+      // ยังไม่มีสมาชิกเลย → เข้าได้เลย (เหมือนเดิม) · มีสมาชิก → ต้องผ่าน PIN ก่อน
+      if (!members.some(m => m.active)) return res.json({ ok: true, name: ADMIN_NAME, token: signToken({ t: 'user', email: '', exp: Date.now() + USER_TTL }), noMembers: true });
+      return res.json({ ok: true, name: ADMIN_NAME, token: signToken({ t: 'pre', exp: Date.now() + PRE_TTL }) });
     }
     writeLoginLog(username||'(ไม่ระบุ)', 'failed', 'Username หรือ Password ผิด', ip).catch(()=>{});
     return res.json({ ok: false, error: 'Invalid credentials' });
@@ -355,7 +404,7 @@ app.post('/api', async (req, res) => {
     if (verifyPin(pin, member.pin_hash)) {
       resetAttempts(email);
       writeLoginLog(email, 'success', 'เข้าระบบสำเร็จ', ip).catch(()=>{});
-      return res.json({ ok: true, email });
+      return res.json({ ok: true, email, token: signToken({ t: 'user', email, exp: Date.now() + USER_TTL }) });
     }
     recordFailedAttempt(email);
     const l = getLockout(email);
@@ -376,11 +425,15 @@ app.post('/api', async (req, res) => {
     const members = await readMembers();
     const member = members.find(m => m.email === email && m.active);
     if (!member) return res.json({ ok: false, error: 'ไม่พบสมาชิกนี้' });
-    if (member.pin_hash && currentPin) {
-      if (!verifyPin(currentPin, member.pin_hash)) return res.json({ ok: false, error: 'PIN เดิมไม่ถูกต้อง' });
+    if (member.pin_hash) {
+      // 🔒 มี PIN อยู่แล้ว → ต้องเป็นเจ้าของ email ที่ login อยู่ + ใส่ PIN เดิมถูก
+      if (session.t !== 'user' || session.email !== email) return res.json({ ok: false, error: 'เปลี่ยน PIN ได้เฉพาะของตัวเอง' });
+      if (!currentPin || !verifyPin(currentPin, member.pin_hash)) return res.json({ ok: false, error: 'PIN เดิมไม่ถูกต้อง' });
     }
     await saveMember(email, hashPin(newPin));
-    return res.json({ ok: true });
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '—';
+    writeLoginLog(email, 'success', member.pin_hash ? 'เปลี่ยน PIN' : 'ตั้ง PIN ครั้งแรก', ip).catch(()=>{});
+    return res.json({ ok: true, token: signToken({ t: 'user', email, exp: Date.now() + USER_TTL }) });
   }
 
   // Admin: add / remove / reset PIN
@@ -411,7 +464,7 @@ app.post('/api', async (req, res) => {
     const pad = n => String(n).padStart(2,'0');
     const dateStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
     const jobId = `JOB-${dateStr}-${String(jobs.length+1).padStart(4,'0')}`;
-    const job = { id:jobId, proj:req.body.proj, ref:req.body.ref, supplier:req.body.supplier, type:req.body.type, deadline:req.body.deadline||'', email:req.body.email||'', note:req.body.note||'', createdBy:req.body.createdBy||'Admin', createdAt:now.toLocaleString('th-TH',{timeZone:'Asia/Bangkok'}), status:'pending', receivedAt:null, photo:null, submittedAt:null };
+    const job = { id:jobId, proj:req.body.proj, ref:req.body.ref, supplier:req.body.supplier, type:req.body.type, deadline:req.body.deadline||'', email:req.body.email||'', note:req.body.note||'', createdBy:session.email||req.body.createdBy||'Admin', createdAt:now.toLocaleString('th-TH',{timeZone:'Asia/Bangkok'}), status:'pending', receivedAt:null, photo:null, submittedAt:null };
     await appendJob(job);
     if (job.email) {
       const supplierUrl = `${process.env.APP_URL||'http://localhost:3000'}/?sup=${encodeURIComponent(jobId)}`;
@@ -433,6 +486,9 @@ app.post('/api', async (req, res) => {
   }
 
   if (action === 'supplierSubmit') {
+    { const jobs=await readJobs(); const j=jobs.find(x=>x.id===req.body.jobId);
+      if (!j) return res.json({ ok:false, error:'Not found' });
+      if (j.status !== 'pending') return res.json({ ok:false, error:'งานนี้ปิดแล้ว' }); }
     let photoUrl = null;
     if (req.body.photoBase64) photoUrl = await uploadPhoto(req.body.photoBase64, req.body.jobId);
     const submittedAt = new Date().toLocaleString('th-TH',{timeZone:'Asia/Bangkok'});
@@ -449,15 +505,25 @@ app.post('/api', async (req, res) => {
     return res.json({ ok:true });
   }
 
-  if (action === 'getJobById') { const jobs=await readJobs(); return res.json({ ok:true, job:jobs.find(x=>x.id===req.body.jobId)||null }); }
+  if (action === 'getJobById') {
+    const jobs=await readJobs(); const j=jobs.find(x=>x.id===req.body.jobId);
+    // หน้า Supplier ไม่ต้อง login → ส่งเฉพาะข้อมูลที่หน้านั้นใช้ (ไม่ส่ง email / ผู้สร้าง)
+    const job = j ? { id:j.id, proj:j.proj, ref:j.ref, supplier:j.supplier, type:j.type, deadline:j.deadline, note:j.note, status:j.status, photo:j.photo, location:j.location, receivedAt:j.receivedAt, submittedAt:j.submittedAt } : null;
+    return res.json({ ok:true, job });
+  }
 
   if (action === 'getConfig') { const config=await readConfig(); return res.json({ ok:true, config:{ adminUser:ADMIN_USER, adminName:ADMIN_NAME, notifyEmails:config.notifyEmails } }); }
   if (action === 'saveConfig') { await saveConfig({ notifyEmails:req.body.config.notifyEmails||[] }); return res.json({ ok:true }); }
 
   if (action === 'sendQREmail') {
-    const supplierUrl = `${process.env.APP_URL||'http://localhost:3000'}/?sup=${encodeURIComponent(req.body.jobId)}`;
+    // 🔒 ใช้ข้อมูลงานจากชีตเท่านั้น (ไม่รับข้อความจากหน้าเว็บ) + ส่งได้ทีละ 1 ผู้รับ
+    const job = (await readJobs()).find(x=>x.id===req.body.jobId);
+    if (!job) return res.json({ ok:false, error:'ไม่พบงาน' });
+    const to = String(req.body.email||'').trim();
+    if (!/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(to)) return res.json({ ok:false, error:'Email ไม่ถูกต้อง' });
+    const supplierUrl = `${process.env.APP_URL||'http://localhost:3000'}/?sup=${encodeURIComponent(job.id)}`;
     try {
-      await getTransporter().sendMail({ from:process.env.GMAIL_USER, to:req.body.email, subject:`[${PROJECT}] QR Code สำหรับส่งเอกสาร — ${req.body.proj}`, text:`เรียน ${req.body.supplier}\n\nกรุณาเปิดลิงค์นี้ตอนนำส่งเอกสาร\n${supplierUrl}\n\n— ${PROJECT} · Singha Complex` });
+      await getTransporter().sendMail({ from:process.env.GMAIL_USER, to, subject:`[${PROJECT}] QR Code สำหรับส่งเอกสาร — ${job.proj}`, text:`เรียน ${job.supplier}\n\nกรุณาเปิดลิงค์นี้ตอนนำส่งเอกสาร\n${supplierUrl}\n\n— ${PROJECT} · Singha Complex` });
       return res.json({ ok:true });
     } catch(e) { return res.json({ ok:false, error:e.message }); }
   }
