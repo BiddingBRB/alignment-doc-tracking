@@ -117,13 +117,14 @@ async function ensureSheet(title) {
 async function readJobs() {
   try {
     const sheets = getSheets();
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Sheet1!A2:O' });
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Sheet1!A2:R' });
     const rows = res.data.values || [];
     return rows.map(r => ({
       id: r[0]||'', proj: r[1]||'', ref: r[2]||'', supplier: r[3]||'',
       type: r[4]||'', deadline: r[5]||'', email: r[6]||'', note: r[7]||'',
       createdBy: r[8]||'', createdAt: r[9]||'', status: r[10]||'pending',
-      receivedAt: r[11]||null, photo: r[12]||null, location: r[13]||null, submittedAt: r[14]||null
+      receivedAt: r[11]||null, photo: r[12]||null, location: r[13]||null, submittedAt: r[14]||null,
+      notify: r[15]||'', site: r[16]||'', rtoken: r[17]||''  // 🏭 v3: ผู้รับแจ้งเตือนรายงาน · สถานที่รับซอง · รหัสลิงก์ยืนยันรับซอง
     }));
   } catch (e) { console.error('readJobs error:', e.message); return []; }
 }
@@ -132,7 +133,7 @@ async function appendJob(job) {
   const sheets = getSheets();
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID, range: 'Sheet1!A1', valueInputOption: 'RAW',
-    requestBody: { values: [[job.id,job.proj,job.ref,job.supplier,job.type,job.deadline,job.email,job.note,job.createdBy,job.createdAt,job.status,job.receivedAt||'',job.photo||'',job.location||'',job.submittedAt||'']] }
+    requestBody: { values: [[job.id,job.proj,job.ref,job.supplier,job.type,job.deadline,job.email,job.note,job.createdBy,job.createdAt,job.status,job.receivedAt||'',job.photo||'',job.location||'',job.submittedAt||'',job.notify||'',job.site||'',job.rtoken||'']] }
   });
 }
 
@@ -143,16 +144,16 @@ async function updateJob(jobId, updates) {
   const rowIndex = rows.findIndex(r => r[0] === jobId);
   if (rowIndex === -1) return false;
   const sheetRow = rowIndex + 2;
-  const cur = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `Sheet1!A${sheetRow}:O${sheetRow}` });
+  const cur = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `Sheet1!A${sheetRow}:R${sheetRow}` });
   const row = (cur.data.values||[[]])[0]||[];
-  while (row.length < 15) row.push('');
+  while (row.length < 18) row.push('');
   if (updates.status)      row[10] = updates.status;
   if (updates.receivedAt)  row[11] = updates.receivedAt;
   if (updates.photo)       row[12] = updates.photo;
   if (updates.location)    row[13] = updates.location;
   if (updates.submittedAt) row[14] = updates.submittedAt;
   await sheets.spreadsheets.values.update({
-    spreadsheetId: SHEET_ID, range: `Sheet1!A${sheetRow}:O${sheetRow}`,
+    spreadsheetId: SHEET_ID, range: `Sheet1!A${sheetRow}:R${sheetRow}`,
     valueInputOption: 'RAW', requestBody: { values: [row] }
   });
   return true;
@@ -162,8 +163,8 @@ async function ensureHeader() {
   try {
     const sheets = getSheets();
     await sheets.spreadsheets.values.update({
-      spreadsheetId: SHEET_ID, range: 'Sheet1!A1:O1', valueInputOption: 'RAW',
-      requestBody: { values: [['id','proj','ref','supplier','type','deadline','email','note','createdBy','createdAt','status','receivedAt','photo','location','submittedAt']] }
+      spreadsheetId: SHEET_ID, range: 'Sheet1!A1:R1', valueInputOption: 'RAW',
+      requestBody: { values: [['id','proj','ref','supplier','type','deadline','email','note','createdBy','createdAt','status','receivedAt','photo','location','submittedAt','notify','site','rtoken']] }
     });
   } catch (e) { console.error('ensureHeader error:', e.message); }
 }
@@ -296,15 +297,32 @@ function getTransporter() {
   return nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD } });
 }
 
+// 🏭 v3 (22 พ.ย. 2569) แจ้งเตือนตามงาน — งานที่เปิดจากมุม Plant (เช่น WNB) ส่ง notify + site มาด้วย
+//   มี notify  = แจ้งเฉพาะรายชื่อของงานนั้น (ส่วนกลางไม่ได้รับ — งาน Plant ไม่เกิน 5 ล้าน ไม่ต้องแจ้งทีมกลาง)
+//   ไม่มี notify = ใช้รายชื่อในหน้าตั้งค่าเหมือนเดิม (งานส่วนกลาง / งานเก่า)
+const DEFAULT_SITE = 'Singha Complex';
+const EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
+function cleanEmails(v) {
+  const list = String(v || '').split(/[,;\s]+/).map(x => x.trim()).filter(x => EMAIL_RE.test(x));
+  return [...new Set(list)].slice(0, 5);
+}
+function cleanSite(v) { return String(v || '').replace(/[\r\n]+/g, ' ').trim().slice(0, 120); }
+function siteOf(job) { return job.site || DEFAULT_SITE; }
+function escHtml(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function appUrl() { return (process.env.APP_URL || 'http://localhost:3000').replace(/\/+$/, ''); }
+function receiveUrl(job) { return job.rtoken ? `${appUrl()}/receive/${encodeURIComponent(job.id)}?t=${encodeURIComponent(job.rtoken)}` : ''; }
+
 async function sendNotify(job) {
-  const config = await readConfig();
-  if (!config.notifyEmails.length) return;
+  const own = cleanEmails(job.notify);
+  const to = own.length ? own : (await readConfig()).notifyEmails;
+  if (!to.length) return;
+  const rl = job.status === 'pending' ? receiveUrl(job) : '';
   try {
     const t = getTransporter();
     await t.sendMail({
-      from: process.env.GMAIL_USER, to: config.notifyEmails.join(','),
+      from: process.env.GMAIL_USER, to: to.join(','),
       subject: `[${PROJECT}] เอกสารมาถึงแล้ว — ${job.proj}`,
-      text: `มีเอกสารส่งมาถึงตึก Singha Complex\n\nโครงการ: ${job.proj}\nเลขที่: ${job.ref}\nSupplier: ${job.supplier}\nประเภท: ${job.type}\nวันที่ Supplier กดส่ง: ${job.submittedAt||'—'}\nส่งเมื่อ: ${job.receivedAt}\nสร้างโดย: ${job.createdBy}\n${job.photo?'\nดูรูปซอง: '+job.photo:''}${job.location?'\nตำแหน่ง GPS: '+job.location:''}${job.note?'\nหมายเหตุ: '+job.note:''}\n\n— ${PROJECT}`
+      text: `มีเอกสารส่งมาถึง ${siteOf(job)}\n${rl ? '\n✅ ได้รับซองแล้ว กดยืนยันที่นี่ (Vendor จะได้รับอีเมลยืนยันอัตโนมัติ):\n' + rl + '\n' : ''}\nโครงการ: ${job.proj}\nเลขที่: ${job.ref}\nSupplier: ${job.supplier}\nประเภท: ${job.type}\nวันที่ Supplier กดส่ง: ${job.submittedAt||'—'}\nส่งเมื่อ: ${job.receivedAt}\nสร้างโดย: ${job.createdBy}\n${job.photo?'\nดูรูปซอง: '+job.photo:''}${job.location?'\nตำแหน่ง GPS: '+job.location:''}${job.note?'\nหมายเหตุ: '+job.note:''}\n\n— ${PROJECT}`
     });
   } catch(e) { console.error('Notify error:', e.message); }
 }
@@ -314,8 +332,8 @@ async function sendSupplierReceived(job) {
     const t = getTransporter();
     await t.sendMail({
       from: process.env.GMAIL_USER, to: job.email,
-      subject: `[Alignment Doc Tracking] ✅ ได้รับเอกสารของท่านแล้ว — ${job.proj}`,
-      html: `<div style="font-family:sans-serif;max-width:520px;margin:auto;padding:28px;border:1px solid #e0d0a0;border-radius:6px;background:#fffdf0;"><h2 style="color:#8B6914;font-size:16px;margin-bottom:4px;">✅ ได้รับเอกสารของท่านแล้ว</h2><p style="color:#6B5520;font-size:13px;margin-bottom:16px;">เรียน <b>${job.supplier}</b></p><p style="font-size:14px;color:#3A2E0E;margin-bottom:16px;">กลุ่มงานจัดซื้อกลาง <b>Singha Complex</b> ได้รับซองเอกสารของท่านเรียบร้อยแล้ว</p><table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;"><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">โครงการ</td><td style="padding:6px 10px;">${job.proj}</td></tr><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">เลขที่</td><td style="padding:6px 10px;">${job.ref}</td></tr><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">ประเภทเอกสาร</td><td style="padding:6px 10px;">${job.type}</td></tr>${job.note?`<tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">หมายเหตุ</td><td style="padding:6px 10px;">${job.note}</td></tr>`:''}<tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">วันที่ Supplier กดส่ง</td><td style="padding:6px 10px;">${job.submittedAt||'—'}</td></tr><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">เวลารับ</td><td style="padding:6px 10px;">${job.receivedAt}</td></tr></table>${job.photo?`<p style="font-size:12px;color:#6B5520;">📷 รูปยืนยัน: <a href="${job.photo}" style="color:#C9A84C;">ดูรูป</a></p>`:''}<hr style="border:none;border-top:1px solid #e0d0a0;margin:16px 0;"><p style="font-size:11px;color:#9A7C3A;">— Alignment Doc Tracking · Singha Complex</p></div>`
+      subject: `[Alignment Doc Tracking] ✅ ได้รับเอกสารของท่านแล้ว — ${job.proj}`, // 🏭 v3 ชื่อสถานที่ตามงาน
+      html: `<div style="font-family:sans-serif;max-width:520px;margin:auto;padding:28px;border:1px solid #e0d0a0;border-radius:6px;background:#fffdf0;"><h2 style="color:#8B6914;font-size:16px;margin-bottom:4px;">✅ ได้รับเอกสารของท่านแล้ว</h2><p style="color:#6B5520;font-size:13px;margin-bottom:16px;">เรียน <b>${job.supplier}</b></p><p style="font-size:14px;color:#3A2E0E;margin-bottom:16px;">${job.site ? 'ฝ่ายจัดซื้อ <b>' + escHtml(job.site) + '</b>' : 'กลุ่มงานจัดซื้อกลาง <b>Singha Complex</b>'} ได้รับซองเอกสารของท่านเรียบร้อยแล้ว</p><table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;"><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">โครงการ</td><td style="padding:6px 10px;">${job.proj}</td></tr><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">เลขที่</td><td style="padding:6px 10px;">${job.ref}</td></tr><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">ประเภทเอกสาร</td><td style="padding:6px 10px;">${job.type}</td></tr>${job.note?`<tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">หมายเหตุ</td><td style="padding:6px 10px;">${job.note}</td></tr>`:''}<tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">วันที่ Supplier กดส่ง</td><td style="padding:6px 10px;">${job.submittedAt||'—'}</td></tr><tr><td style="padding:6px 10px;background:#f5edcc;color:#8B6914;font-weight:bold;">เวลารับ</td><td style="padding:6px 10px;">${job.receivedAt}</td></tr></table>${job.photo?`<p style="font-size:12px;color:#6B5520;">📷 รูปยืนยัน: <a href="${job.photo}" style="color:#C9A84C;">ดูรูป</a></p>`:''}<hr style="border:none;border-top:1px solid #e0d0a0;margin:16px 0;"><p style="font-size:11px;color:#9A7C3A;">— Alignment Doc Tracking · ${escHtml(siteOf(job))}</p></div>`
     });
   } catch(e) { console.error('Supplier notify error:', e.message); }
 }
@@ -346,6 +364,48 @@ app.get('/api/cpg-status', async (req, res) => {
     const match = jobs.filter(j => String(j.ref || '').trim() === ref);
     res.json({ ok: true, jobs: match.map(j => ({ id: j.id, supplier: j.supplier, type: j.type, status: j.status, deadline: j.deadline || '', submittedAt: j.submittedAt || '', receivedAt: j.receivedAt || '' })) });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// =========================================================
+// 🏭 v3 ลิงก์ยืนยันรับซองจากอีเมล (ไม่ต้อง login — ใช้รหัสลับรายงาน rtoken)
+// GET  = แสดงหน้ายืนยันเท่านั้น (ไม่เปลี่ยนข้อมูล · กัน Outlook Safe Links / ตัวสแกนลิงก์กดแทนคน)
+// POST = ยืนยันจริง → ปิดงาน + แจ้ง Vendor เหมือนกด Mark Received
+// =========================================================
+async function doReceive(jobId, photoUrl) {
+  const receivedAt = new Date().toLocaleString('th-TH',{timeZone:'Asia/Bangkok'});
+  const ok = await updateJob(jobId, { status:'received', receivedAt, photo:photoUrl||null });
+  if (!ok) return false;
+  const j = (await readJobs()).find(x => x.id === jobId);
+  if (j) await Promise.all([sendNotify(j).catch(()=>{}), j.email ? sendSupplierReceived(j).catch(()=>{}) : null]);
+  return true;
+}
+async function findByToken(jobId, tok) {
+  const j = (await readJobs()).find(x => x.id === jobId);
+  if (!j || !j.rtoken || !tok || !safeEqual(j.rtoken, tok)) return null;
+  return j;
+}
+function receivePage(title, body) {
+  return `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escHtml(title)}</title>
+<style>body{font-family:'Sarabun',system-ui,sans-serif;background:#fffdf0;color:#3A2E0E;margin:0;padding:24px}.c{max-width:480px;margin:24px auto;background:#fff;border:1px solid #e0d0a0;border-radius:10px;padding:24px}h2{color:#8B6914;font-size:18px;margin:0 0 12px}td{padding:5px 8px;font-size:14px;vertical-align:top}td:first-child{color:#8B6914;font-weight:bold;white-space:nowrap}button{width:100%;margin-top:16px;padding:14px;font-size:16px;font-weight:bold;border:0;border-radius:8px;background:#1F7A3A;color:#fff;cursor:pointer}.m{font-size:12px;color:#9A7C3A;margin-top:14px}</style></head><body><div class="c">${body}<div class="m">— ${PROJECT}</div></div></body></html>`;
+}
+function jobTable(j) {
+  return `<table><tr><td>โครงการ</td><td>${escHtml(j.proj)}</td></tr><tr><td>เลขที่</td><td>${escHtml(j.ref)}</td></tr><tr><td>Supplier</td><td>${escHtml(j.supplier)}</td></tr><tr><td>ประเภท</td><td>${escHtml(j.type)}</td></tr><tr><td>สถานที่</td><td>${escHtml(siteOf(j))}</td></tr>${j.submittedAt ? `<tr><td>Supplier กดส่ง</td><td>${escHtml(j.submittedAt)}</td></tr>` : ''}${j.photo ? `<tr><td>รูปซอง</td><td><a href="${escHtml(j.photo)}" target="_blank" rel="noreferrer">ดูรูป</a></td></tr>` : ''}</table>`;
+}
+app.get('/receive/:jobId', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store'); res.setHeader('Referrer-Policy', 'no-referrer');
+  const j = await findByToken(req.params.jobId, req.query.t);
+  if (!j) return res.status(404).send(receivePage('ไม่พบงาน', '<h2>⚠ ลิงก์ไม่ถูกต้อง</h2><p>ลิงก์นี้ใช้ไม่ได้ หรือไม่พบงานนี้ — ติดต่อจัดซื้อกลาง</p>'));
+  if (j.status !== 'pending') return res.send(receivePage('ปิดงานแล้ว', `<h2>${j.status === 'received' ? '✅ รับซองไปแล้ว' : '⛔ งานนี้ถูกยกเลิกแล้ว'}</h2>${jobTable(j)}${j.receivedAt ? `<p class="m">เมื่อ ${escHtml(j.receivedAt)}</p>` : ''}`));
+  res.send(receivePage('ยืนยันรับซอง', `<h2>📦 ยืนยันรับซองเอกสาร</h2>${jobTable(j)}<form method="post" action="/receive/${encodeURIComponent(j.id)}"><input type="hidden" name="t" value="${escHtml(req.query.t)}"><button type="submit">✅ ได้รับซองแล้ว — ยืนยัน</button></form><p class="m">กดแล้วระบบปิดงานนี้ และส่งอีเมลแจ้ง Supplier ว่าได้รับเอกสารแล้ว</p>`));
+});
+app.post('/receive/:jobId', express.urlencoded({ extended: false, limit: '4kb' }), async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store'); res.setHeader('Referrer-Policy', 'no-referrer');
+  const j = await findByToken(req.params.jobId, (req.body || {}).t);
+  if (!j) return res.status(404).send(receivePage('ไม่พบงาน', '<h2>⚠ ลิงก์ไม่ถูกต้อง</h2>'));
+  if (j.status !== 'pending') return res.send(receivePage('ปิดงานแล้ว', `<h2>${j.status === 'received' ? '✅ รับซองไปแล้ว' : '⛔ งานนี้ถูกยกเลิกแล้ว'}</h2>${jobTable(j)}`));
+  const ok = await doReceive(j.id, null);
+  if (!ok) return res.status(500).send(receivePage('ผิดพลาด', '<h2>⚠ บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง</h2>'));
+  res.send(receivePage('รับซองแล้ว', `<h2>✅ บันทึกรับซองเรียบร้อย</h2>${jobTable(j)}<p>ระบบส่งอีเมลยืนยันถึง Supplier แล้ว${j.email ? '' : ' (งานนี้ไม่มีอีเมล Supplier)'}</p>`));
 });
 
 app.get('/sup/:jobId', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'supplier.html')); });
@@ -464,24 +524,24 @@ app.post('/api', async (req, res) => {
     const pad = n => String(n).padStart(2,'0');
     const dateStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
     const jobId = `JOB-${dateStr}-${String(jobs.length+1).padStart(4,'0')}`;
-    const job = { id:jobId, proj:req.body.proj, ref:req.body.ref, supplier:req.body.supplier, type:req.body.type, deadline:req.body.deadline||'', email:req.body.email||'', note:req.body.note||'', createdBy:session.email||req.body.createdBy||'Admin', createdAt:now.toLocaleString('th-TH',{timeZone:'Asia/Bangkok'}), status:'pending', receivedAt:null, photo:null, submittedAt:null };
+    const job = { id:jobId, proj:req.body.proj, ref:req.body.ref, supplier:req.body.supplier, type:req.body.type, deadline:req.body.deadline||'', email:req.body.email||'', note:req.body.note||'', createdBy:session.email||req.body.createdBy||'Admin', createdAt:now.toLocaleString('th-TH',{timeZone:'Asia/Bangkok'}), status:'pending', receivedAt:null, photo:null, submittedAt:null,
+      notify: cleanEmails(req.body.notify).join(','), site: cleanSite(req.body.site) };
+    if (job.notify) job.rtoken = crypto.randomBytes(18).toString('hex'); // 🏭 v3 ลิงก์ยืนยันรับซองในอีเมลแจ้งเตือน (ใช้ได้เฉพาะงานนี้ · ปิดงานแล้วใช้ไม่ได้)
     await appendJob(job);
     if (job.email) {
       const supplierUrl = `${process.env.APP_URL||'http://localhost:3000'}/?sup=${encodeURIComponent(jobId)}`;
-      getTransporter().sendMail({ from:process.env.GMAIL_USER, to:job.email, subject:`[${PROJECT}] QR Code สำหรับส่งเอกสาร — ${job.proj}`, text:`เรียน ${job.supplier}\n\nกรุณาเปิดลิงค์นี้ตอนนำส่งเอกสาร\n${supplierUrl}\n\nรายละเอียด:\n- โครงการ: ${job.proj}\n- เลขที่: ${job.ref}\n- ประเภท: ${job.type}\n${job.deadline?'- Deadline: '+job.deadline:''}${job.note?'\n- หมายเหตุ: '+job.note:''}\n\n— ${PROJECT} · Singha Complex` }).catch(e=>console.error('Email error:',e.message));
+      getTransporter().sendMail({ from:process.env.GMAIL_USER, to:job.email, subject:`[${PROJECT}] QR Code สำหรับส่งเอกสาร — ${job.proj}`, text:`เรียน ${job.supplier}\n\nกรุณาเปิดลิงค์นี้ตอนนำส่งเอกสาร\n${supplierUrl}\n\nรายละเอียด:\n- โครงการ: ${job.proj}\n- เลขที่: ${job.ref}\n- ประเภท: ${job.type}\n${job.deadline?'- Deadline: '+job.deadline:''}${job.note?'\n- หมายเหตุ: '+job.note:''}\n\n— ${PROJECT} · ${siteOf(job)}` }).catch(e=>console.error('Email error:',e.message));
     }
     return res.json({ ok:true, jobId });
   }
 
-  if (action === 'getJobs') { const jobs = await readJobs(); return res.json({ ok:true, jobs:[...jobs].reverse() }); }
+  if (action === 'getJobs') { const jobs = (await readJobs()).map(({ rtoken, ...j }) => j); return res.json({ ok:true, jobs:[...jobs].reverse() }); } // 🏭 v3 ไม่ส่งรหัสลิงก์รับซองออกหน้าเว็บ
 
   if (action === 'markReceived') {
-    const receivedAt = new Date().toLocaleString('th-TH',{timeZone:'Asia/Bangkok'});
     let photoUrl = null;
     if (req.body.photoBase64) photoUrl = await uploadPhoto(req.body.photoBase64, req.body.jobId+'_admin');
-    const ok = await updateJob(req.body.jobId, { status:'received', receivedAt, photo:photoUrl });
+    const ok = await doReceive(req.body.jobId, photoUrl);
     if (!ok) return res.json({ ok:false, error:'Not found' });
-    readJobs().then(jobs => { const j=jobs.find(x=>x.id===req.body.jobId); if(j){ sendNotify(j).catch(()=>{}); if(j.email)sendSupplierReceived(j).catch(()=>{}); } });
     return res.json({ ok:true });
   }
 
@@ -523,7 +583,7 @@ app.post('/api', async (req, res) => {
     if (!/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(to)) return res.json({ ok:false, error:'Email ไม่ถูกต้อง' });
     const supplierUrl = `${process.env.APP_URL||'http://localhost:3000'}/?sup=${encodeURIComponent(job.id)}`;
     try {
-      await getTransporter().sendMail({ from:process.env.GMAIL_USER, to, subject:`[${PROJECT}] QR Code สำหรับส่งเอกสาร — ${job.proj}`, text:`เรียน ${job.supplier}\n\nกรุณาเปิดลิงค์นี้ตอนนำส่งเอกสาร\n${supplierUrl}\n\n— ${PROJECT} · Singha Complex` });
+      await getTransporter().sendMail({ from:process.env.GMAIL_USER, to, subject:`[${PROJECT}] QR Code สำหรับส่งเอกสาร — ${job.proj}`, text:`เรียน ${job.supplier}\n\nกรุณาเปิดลิงค์นี้ตอนนำส่งเอกสาร\n${supplierUrl}\n\n— ${PROJECT} · ${siteOf(job)}` });
       return res.json({ ok:true });
     } catch(e) { return res.json({ ok:false, error:e.message }); }
   }
