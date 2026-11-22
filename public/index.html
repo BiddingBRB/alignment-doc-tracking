@@ -305,6 +305,10 @@ tbody td{padding:8px 11px;color:var(--td);vertical-align:middle;background:rgba(
             <input type="hidden" id="j-email" value="">
           </div>
         </div>
+        <div class="fr"><!-- 🏭 v3 งานจาก Plant: สถานที่รับซอง + ผู้รับแจ้งเตือนรายงาน (ว่าง = Singha Complex / รายชื่อในหน้าตั้งค่า) -->
+          <div class="fld"><label>สถานที่รับซอง <span style="font-size:9px;color:var(--tl);font-family:sans-serif;text-transform:none;letter-spacing:0;">(ว่าง = Singha Complex)</span></label><input type="text" id="j-site" maxlength="120" placeholder="เช่น โรงงาน WNB (วังน้อย)"></div>
+          <div class="fld"><label>แจ้งเตือนเมื่อซองมาถึง <span style="font-size:9px;color:var(--tl);font-family:sans-serif;text-transform:none;letter-spacing:0;">(ว่าง = รายชื่อในหน้าตั้งค่า · ใส่แล้วแจ้งเฉพาะคนนี้ + มีลิงก์ยืนยันรับซอง)</span></label><input type="text" id="j-notify" placeholder="email@boonrawd.co.th (หลายคนคั่นด้วย ,)"></div>
+        </div>
         <div class="fld"><label>หมายเหตุ</label><textarea id="j-note" placeholder="รายละเอียดเพิ่มเติม"></textarea></div>
         <div id="draft-banner" style="display:none;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.35);border-radius:4px;padding:9px 13px;font-size:12px;color:var(--gold-d);">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -671,6 +675,8 @@ function formHasData(){
     ||document.getElementById('j-sup').value.trim()
     ||document.getElementById('j-email').value.trim()
     ||document.getElementById('j-note').value.trim()
+    ||document.getElementById('j-site').value.trim()
+    ||document.getElementById('j-notify').value.trim()
     ||document.getElementById('j-type').value
     ||document.getElementById('j-ddl').value);
 }
@@ -702,6 +708,8 @@ function saveDraft(){
     ddl:document.getElementById('j-ddl').value,
     emails:emailTags.slice(), // เก็บ array ของ emails
     note:document.getElementById('j-note').value,
+    site:document.getElementById('j-site').value,
+    notify:document.getElementById('j-notify').value,
     savedAt:new Date().toLocaleString('th-TH',{timeZone:'Asia/Bangkok'})
   };
   localStorage.setItem('jobDraft', JSON.stringify(draft));
@@ -719,6 +727,8 @@ function loadDraft(){
   document.getElementById('j-type').value=d.type||'';
   document.getElementById('j-ddl').value=d.ddl||'';
   document.getElementById('j-note').value=d.note||'';
+  document.getElementById('j-site').value=d.site||'';
+  document.getElementById('j-notify').value=d.notify||'';
   // โหลด emails กลับมา
   emailTags=d.emails||( d.email ? d.email.split(',').map(function(e){return e.trim();}).filter(Boolean) : [] );
   renderEmailTags();
@@ -745,10 +755,10 @@ async function createJob(){
   var proj=document.getElementById('j-proj').value.trim(),ref=document.getElementById('j-ref').value.trim(),sup=document.getElementById('j-sup').value.trim(),type=document.getElementById('j-type').value;
   if(!proj||!ref||!sup||!type){alert('กรุณากรอกข้อมูลที่มี * ให้ครบ');return;}
   var btn=document.getElementById('create-btn');btn.disabled=true;btn.textContent='กำลังสร้าง...';
-  var d=await api({action:'createJob',proj:proj,ref:ref,supplier:sup,type:type,deadline:document.getElementById('j-ddl').value,email:document.getElementById('j-email').value.trim(),note:document.getElementById('j-note').value.trim(),createdBy:currentEmail||currentUser||'Admin'});
+  var d=await api({action:'createJob',proj:proj,ref:ref,supplier:sup,type:type,deadline:document.getElementById('j-ddl').value,email:document.getElementById('j-email').value.trim(),note:document.getElementById('j-note').value.trim(),site:document.getElementById('j-site').value.trim(),notify:document.getElementById('j-notify').value.trim(),createdBy:currentEmail||currentUser||'Admin'});
   btn.disabled=false;btn.textContent='⛜ สร้างงาน + Gen QR Code';
   if(d.ok){
-    ['j-proj','j-ref','j-sup','j-email','j-note'].forEach(function(i){document.getElementById(i).value='';});
+    ['j-proj','j-ref','j-sup','j-email','j-note','j-site','j-notify'].forEach(function(i){document.getElementById(i).value='';});
     document.getElementById('j-type').value='';document.getElementById('j-ddl').value='';
     clearEmailTags(); // ล้าง email tags
     localStorage.removeItem('jobDraft'); // ล้าง Draft หลังสร้างสำเร็จ
@@ -766,7 +776,7 @@ function renderJobs(){
   if(jobPage>totalPages)jobPage=totalPages;
   var start=(jobPage-1)*jobPerPage,paged=filtered.slice(start,start+jobPerPage);
   if(!filtered.length){el.innerHTML='<div class="loading">No jobs yet</div>';return;}
-  var html=paged.map(function(j){return'<div class="job-item"><div class="job-top"><div><div class="job-id">'+j.id+'</div><div class="job-name">'+j.proj+'</div><div class="job-meta">'+(j.deadline?' &middot; Deadline: '+j.deadline:'')+(j.note?'<br><span style="font-size:11px;color:#9A7C3A;">📝 '+j.note+'</span>':'')+'</div><div class="job-by">Created by '+j.createdBy+' &middot; '+j.createdAt+'</div></div><div class="job-acts"><span class="sp '+(j.status==='received'?'s-recv':j.status==='cancelled'?'s-cancel':'s-pend')+'">'+(j.status==='received'?'Received':j.status==='cancelled'?'Cancelled':'Pending')+'</span><button class="sm-btn" onclick="openQR(jobs.find(function(x){return x.id===\''+j.id+'\';}));">QR Code</button>'+(j.status==='pending'?'<button class="sm-btn green" onclick="markReceived(\''+j.id+'\')">Mark Received</button><button class="sm-btn red" onclick="cancelJob(\''+j.id+'\')">ยกเลิก</button>':'')+'</div></div></div>';}).join('');
+  var html=paged.map(function(j){return'<div class="job-item"><div class="job-top"><div><div class="job-id">'+j.id+'</div><div class="job-name">'+j.proj+'</div><div class="job-meta">'+(j.deadline?' &middot; Deadline: '+j.deadline:'')+(j.note?'<br><span style="font-size:11px;color:#9A7C3A;">📝 '+j.note+'</span>':'')+((j.site||j.notify)?'<br><span style="font-size:11px;color:#9A7C3A;">'+(j.site?'📍 '+escT(j.site)+' ':'')+(j.notify?'🔔 '+escT(j.notify):'')+'</span>':'')+'</div><div class="job-by">Created by '+j.createdBy+' &middot; '+j.createdAt+'</div></div><div class="job-acts"><span class="sp '+(j.status==='received'?'s-recv':j.status==='cancelled'?'s-cancel':'s-pend')+'">'+(j.status==='received'?'Received':j.status==='cancelled'?'Cancelled':'Pending')+'</span><button class="sm-btn" onclick="openQR(jobs.find(function(x){return x.id===\''+j.id+'\';}));">QR Code</button>'+(j.status==='pending'?'<button class="sm-btn green" onclick="markReceived(\''+j.id+'\')">Mark Received</button><button class="sm-btn red" onclick="cancelJob(\''+j.id+'\')">ยกเลิก</button>':'')+'</div></div></div>';}).join('');
   var filterHtml='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;"><select onchange="jobFilter=this.value;jobPage=1;renderJobs();" style="padding:7px 10px;border:1px solid rgba(201,168,76,0.3);border-radius:2px;font-size:12px;background:rgba(255,252,242,0.8);color:var(--td);outline:none;"><option value="">ทุกสถานะ</option><option value="pending"'+(jobFilter==='pending'?' selected':'')+'>Pending</option><option value="received"'+(jobFilter==='received'?' selected':'')+'>Received</option><option value="cancelled"'+(jobFilter==='cancelled'?' selected':'')+'>Cancelled</option></select><span style="font-size:12px;color:var(--tl);">ทั้งหมด '+filtered.length+' รายการ</span></div>';
   var pageHtml='<div style="display:flex;gap:6px;justify-content:center;margin-top:12px;flex-wrap:wrap;">'+(jobPage>1?'<button class="ghost-btn" onclick="jobPage--;renderJobs();">&#8592; ก่อนหน้า</button>':'')+Array.from({length:totalPages},function(_,i){return'<button class="'+(i+1===jobPage?'gold-btn':'ghost-btn')+'" style="padding:6px 12px;" onclick="jobPage='+(i+1)+';renderJobs();">'+(i+1)+'</button>';}).join('')+(jobPage<totalPages?'<button class="ghost-btn" onclick="jobPage++;renderJobs();">ถัดไป &#8594;</button>':'')+'</div>';
   el.innerHTML=filterHtml+html+pageHtml;
@@ -884,11 +894,13 @@ function exportLoginLog(){
   });
 }
 
+function escT(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function showToast(msg){var t=document.getElementById('toast');t.innerHTML=msg;t.style.display='block';setTimeout(function(){t.style.display='none';},3000);}
 </script>
 <script>
 /* ⛜ CPG Prefill — เปิดจากปุ่ม "Gen QR รับซอง" ในระบบ CPG Bidding Tracker จะกรอกฟอร์มเปิดงานให้อัตโนมัติ
-   พารามิเตอร์: prefill=1, proj=ชื่อโครงการ, ref=รหัสงาน CPG, sup=ชื่อ Vendor, type=ประเภทเอกสาร, due=deadline, email */
+   พารามิเตอร์: prefill=1, proj=ชื่อโครงการ, ref=รหัสงาน CPG, sup=ชื่อ Vendor, type=ประเภทเอกสาร, due=deadline, email
+   🏭 v3: site=สถานที่รับซอง, notify=อีเมลผู้รับแจ้งเตือน (งานจากมุม Plant) */
 (function(){
   try{
     var q=new URLSearchParams(window.location.search);
@@ -899,6 +911,8 @@ function showToast(msg){var t=document.getElementById('toast');t.innerHTML=msg;t
     setV('j-sup',q.get('vend')); /* ใช้ vend ไม่ใช่ sup — sup ถูกจองให้หน้า Vendor แล้ว */
     setV('j-ddl',q.get('due'));
     setV('j-note',q.get('note'));
+    setV('j-site',q.get('site')); /* 🏭 v3 */
+    setV('j-notify',q.get('notify'));
     var t=q.get('type');
     if(t){var sel=document.getElementById('j-type');if(sel){for(var i=0;i<sel.options.length;i++){var o=sel.options[i];if((o.value||'').indexOf(t)>=0||(o.text||'').indexOf(t)>=0){sel.selectedIndex=i;break;}}}}
     var em=q.get('email');
